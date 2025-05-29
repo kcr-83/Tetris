@@ -2,6 +2,12 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../../_instructions"
+		},
+		{
+			"path": "../../_prompts"
 		}
 	],
 	"settings": {}
