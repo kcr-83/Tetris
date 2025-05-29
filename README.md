@@ -1,6 +1,6 @@
 # Tetris Game Application
 
-A modern implementation of the classic Tetris game built with .NET Core 6.0 and C#.
+A modern implementation of the classic Tetris game built with .NET Core 9.0 and C#.
 
 ![Tetris Game](https://placehold.co/800x400/23C7D9/FFFFFF?text=Tetris+Game&font=montserrat)
 
