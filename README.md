@@ -2,22 +2,40 @@
 
 A modern implementation of the classic Tetris game built with .NET Core 6.0 and C#.
 
-![Tetris Game](https://via.placeholder.com/800x400?text=Tetris+Game)
+![Tetris Game](https://placehold.co/800x400/23C7D9/FFFFFF?text=Tetris+Game&font=montserrat)
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
-- [Technologies](#technologies)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Game Mechanics](#game-mechanics)
-- [Class Diagrams](#class-diagrams)
-- [Data Model](#data-model)
-- [Setup and Installation](#setup-and-installation)
-- [Game Features](#game-features)
-- [Development Roadmap](#development-roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+- [Tetris Game Application](#tetris-game-application)
+  - [Table of Contents](#table-of-contents)
+  - [Project Overview](#project-overview)
+    - [Key Features](#key-features)
+  - [Technologies](#technologies)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+    - [Database](#database)
+    - [Testing](#testing)
+    - [DevOps](#devops)
+  - [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+  - [Game Mechanics](#game-mechanics)
+    - [Board](#board)
+    - [Tetrominos](#tetrominos)
+    - [Game Flow](#game-flow)
+  - [Class Diagrams](#class-diagrams)
+    - [Core Game Components](#core-game-components)
+  - [Data Model](#data-model)
+  - [Setup and Installation](#setup-and-installation)
+    - [Prerequisites](#prerequisites)
+    - [Development Setup](#development-setup)
+    - [Docker Setup](#docker-setup)
+  - [Game Features](#game-features)
+    - [Game Modes](#game-modes)
+    - [Difficulty Levels](#difficulty-levels)
+    - [Scoring System](#scoring-system)
+  - [Development Roadmap](#development-roadmap)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Project Overview
 
