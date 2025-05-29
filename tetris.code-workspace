@@ -10,5 +10,10 @@
 			"path": "../../_prompts"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"cSpell.words": [
+			"Tetris",
+			"Tetromino"
+		]
+	}
 }
