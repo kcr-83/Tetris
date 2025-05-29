@@ -1,0 +1,1 @@
+System should be developed using .Net Core 6.0 or later and C#.

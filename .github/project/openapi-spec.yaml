@@ -1,0 +1,895 @@
+openapi: 3.0.3
+info:
+  title: Tetris Game API
+  description: API for managing Tetris game functionality, user data, and game state
+  version: 1.0.0
+  
+servers:
+  - url: /api
+    description: Default API server
+    
+tags:
+  - name: Users
+    description: User management operations
+  - name: Game
+    description: Game operations
+  - name: Statistics
+    description: Game statistics operations
+  - name: Settings
+    description: User settings operations
+
+paths:
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user information
+      description: Retrieves user profile information
+      operationId: getUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+  
+  /users/{userId}/settings:
+    get:
+      tags:
+        - Settings
+      summary: Get user settings
+      description: Retrieves a user's game settings
+      operationId: getUserSettings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '404':
+          description: User settings not found
+    
+    put:
+      tags:
+        - Settings
+      summary: Update user settings
+      description: Updates a user's game settings
+      operationId: updateUserSettings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Updated user settings
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettingsUpdate'
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '400':
+          description: Invalid input
+        '404':
+          description: User not found
+  
+  /game/difficulties:
+    get:
+      tags:
+        - Game
+      summary: Get difficulty levels
+      description: Retrieves available game difficulty levels
+      operationId: getDifficulties
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  difficulties:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DifficultyLevel'
+  
+  /game/modes:
+    get:
+      tags:
+        - Game
+      summary: Get game modes
+      description: Retrieves available game modes
+      operationId: getGameModes
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  modes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GameMode'
+  
+  /game/new:
+    post:
+      tags:
+        - Game
+      summary: Start a new game
+      description: Initializes a new game with the specified parameters
+      operationId: startNewGame
+      requestBody:
+        description: New game parameters
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - difficultyId
+                - modeId
+              properties:
+                userId:
+                  type: integer
+                  format: int64
+                difficultyId:
+                  type: integer
+                  format: int32
+                modeId:
+                  type: integer
+                  format: int32
+      responses:
+        '201':
+          description: Game created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+        '400':
+          description: Invalid input
+  
+  /game/{gameId}/move:
+    post:
+      tags:
+        - Game
+      summary: Move the current piece
+      description: Move the current tetromino left, right, or down
+      operationId: movePiece
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Move direction
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - direction
+              properties:
+                direction:
+                  type: string
+                  enum: [left, right, down]
+      responses:
+        '200':
+          description: Move successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  newPosition:
+                    $ref: '#/components/schemas/Position'
+        '400':
+          description: Invalid move
+        '404':
+          description: Game not found
+  
+  /game/{gameId}/rotate:
+    post:
+      tags:
+        - Game
+      summary: Rotate the current piece
+      description: Rotate the current tetromino clockwise or counter-clockwise
+      operationId: rotatePiece
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Rotation direction
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - direction
+              properties:
+                direction:
+                  type: string
+                  enum: [clockwise, counterclockwise]
+      responses:
+        '200':
+          description: Rotation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  newRotation:
+                    type: integer
+        '400':
+          description: Invalid rotation
+        '404':
+          description: Game not found
+  
+  /game/{gameId}/drop:
+    post:
+      tags:
+        - Game
+      summary: Hard drop the current piece
+      description: Immediately drop the current tetromino to the bottom
+      operationId: dropPiece
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Drop successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropResult'
+        '404':
+          description: Game not found
+  
+  /game/{gameId}/state:
+    get:
+      tags:
+        - Game
+      summary: Get current game state
+      description: Retrieves the current state of the game
+      operationId: getGameState
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+        '404':
+          description: Game not found
+  
+  /game/{gameId}/save:
+    post:
+      tags:
+        - Game
+      summary: Save current game
+      description: Saves the current game state for later resumption
+      operationId: saveGame
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Save game details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - gameName
+              properties:
+                gameName:
+                  type: string
+      responses:
+        '200':
+          description: Game saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedGameSummary'
+        '404':
+          description: Game not found
+  
+  /users/{userId}/saved-games:
+    get:
+      tags:
+        - Game
+      summary: Get user's saved games
+      description: Retrieves a list of saved games for the user
+      operationId: getUserSavedGames
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  savedGames:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavedGameSummary'
+        '404':
+          description: User not found
+  
+  /users/{userId}/saved-games/{saveId}:
+    get:
+      tags:
+        - Game
+      summary: Get saved game details
+      description: Retrieves detailed information about a saved game
+      operationId: getSavedGameDetails
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: saveId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedGameDetails'
+        '404':
+          description: Saved game not found
+  
+  /game/end:
+    post:
+      tags:
+        - Game
+      summary: End current game
+      description: Ends the current game and saves the final statistics
+      operationId: endGame
+      requestBody:
+        description: Game end statistics
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameEndStats'
+      responses:
+        '200':
+          description: Game ended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameEndResult'
+        '400':
+          description: Invalid input
+        '404':
+          description: Game not found
+  
+  /users/{userId}/statistics:
+    get:
+      tags:
+        - Statistics
+      summary: Get user statistics
+      description: Retrieves game statistics for a user
+      operationId: getUserStatistics
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatistics'
+        '404':
+          description: User not found
+  
+  /users/{userId}/statistics/reset:
+    post:
+      tags:
+        - Statistics
+      summary: Reset user statistics
+      description: Resets all game statistics for a user
+      operationId: resetUserStatistics
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Statistics reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: User not found
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+        dateCreated:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+      required:
+        - userId
+        - username
+        - dateCreated
+    
+    UserSettings:
+      type: object
+      properties:
+        settingId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        controlScheme:
+          type: string
+        soundEffectsEnabled:
+          type: boolean
+        musicEnabled:
+          type: boolean
+        colorTheme:
+          type: string
+        dateModified:
+          type: string
+          format: date-time
+      required:
+        - settingId
+        - userId
+        - controlScheme
+        - soundEffectsEnabled
+        - musicEnabled
+        - colorTheme
+        - dateModified
+    
+    UserSettingsUpdate:
+      type: object
+      properties:
+        controlScheme:
+          type: string
+        soundEffectsEnabled:
+          type: boolean
+        musicEnabled:
+          type: boolean
+        colorTheme:
+          type: string
+    
+    DifficultyLevel:
+      type: object
+      properties:
+        difficultyId:
+          type: integer
+          format: int32
+        difficultyName:
+          type: string
+        initialSpeed:
+          type: integer
+          format: int32
+        speedIncrement:
+          type: number
+          format: float
+        scoreMultiplier:
+          type: number
+          format: float
+        description:
+          type: string
+      required:
+        - difficultyId
+        - difficultyName
+        - initialSpeed
+        - speedIncrement
+        - scoreMultiplier
+    
+    GameMode:
+      type: object
+      properties:
+        modeId:
+          type: integer
+          format: int32
+        modeName:
+          type: string
+        description:
+          type: string
+        timeLimit:
+          type: integer
+          format: int32
+          nullable: true
+        rowClearTarget:
+          type: integer
+          format: int32
+          nullable: true
+      required:
+        - modeId
+        - modeName
+    
+    Position:
+      type: object
+      properties:
+        x:
+          type: integer
+          format: int32
+        y:
+          type: integer
+          format: int32
+      required:
+        - x
+        - y
+    
+    Tetromino:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [I, J, L, O, S, T, Z]
+        position:
+          $ref: '#/components/schemas/Position'
+        rotation:
+          type: integer
+          format: int32
+      required:
+        - type
+    
+    NextTetromino:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [I, J, L, O, S, T, Z]
+      required:
+        - type
+    
+    GameState:
+      type: object
+      properties:
+        gameId:
+          type: string
+          format: uuid
+        userId:
+          type: integer
+          format: int64
+        difficultyId:
+          type: integer
+          format: int32
+        modeId:
+          type: integer
+          format: int32
+        board:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+              format: int32
+        currentScore:
+          type: integer
+          format: int32
+        linesCleared:
+          type: integer
+          format: int32
+        currentLevel:
+          type: integer
+          format: int32
+        currentPiece:
+          $ref: '#/components/schemas/Tetromino'
+        nextPiece:
+          $ref: '#/components/schemas/NextTetromino'
+        gameOver:
+          type: boolean
+      required:
+        - gameId
+        - userId
+        - difficultyId
+        - modeId
+        - board
+        - currentScore
+        - linesCleared
+        - currentPiece
+        - nextPiece
+    
+    DropResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        newPosition:
+          $ref: '#/components/schemas/Position'
+        lockPiece:
+          type: boolean
+        linesCleared:
+          type: integer
+          format: int32
+        linesClearedPositions:
+          type: array
+          items:
+            type: integer
+            format: int32
+        scoreAdded:
+          type: integer
+          format: int32
+        newScore:
+          type: integer
+          format: int32
+      required:
+        - success
+        - newPosition
+    
+    SavedGameSummary:
+      type: object
+      properties:
+        saveId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        gameName:
+          type: string
+        difficultyId:
+          type: integer
+          format: int32
+        modeId:
+          type: integer
+          format: int32
+        currentScore:
+          type: integer
+          format: int32
+        linesCleared:
+          type: integer
+          format: int32
+        nextPiece:
+          type: string
+          enum: [I, J, L, O, S, T, Z]
+        dateSaved:
+          type: string
+          format: date-time
+      required:
+        - saveId
+        - userId
+        - gameName
+        - difficultyId
+        - modeId
+        - currentScore
+        - linesCleared
+        - nextPiece
+        - dateSaved
+    
+    SavedGameDetails:
+      type: object
+      properties:
+        saveId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        gameName:
+          type: string
+        difficultyId:
+          type: integer
+          format: int32
+        modeId:
+          type: integer
+          format: int32
+        boardState:
+          type: string
+        currentScore:
+          type: integer
+          format: int32
+        linesCleared:
+          type: integer
+          format: int32
+        nextPiece:
+          type: string
+          enum: [I, J, L, O, S, T, Z]
+        dateSaved:
+          type: string
+          format: date-time
+      required:
+        - saveId
+        - userId
+        - gameName
+        - difficultyId
+        - modeId
+        - boardState
+        - currentScore
+        - linesCleared
+        - nextPiece
+        - dateSaved
+    
+    GameEndStats:
+      type: object
+      properties:
+        gameId:
+          type: string
+          format: uuid
+        finalScore:
+          type: integer
+          format: int32
+        linesCleared:
+          type: integer
+          format: int32
+        singleLinesCleared:
+          type: integer
+          format: int32
+        doubleLinesCleared:
+          type: integer
+          format: int32
+        tripleLinesCleared:
+          type: integer
+          format: int32
+        tetrisCleared:
+          type: integer
+          format: int32
+        gameDuration:
+          type: integer
+          format: int32
+          description: Duration in seconds
+      required:
+        - gameId
+        - finalScore
+        - linesCleared
+        - gameDuration
+    
+    GameEndResult:
+      type: object
+      properties:
+        gameHistoryId:
+          type: integer
+          format: int64
+        highScore:
+          type: boolean
+        previousHighScore:
+          type: integer
+          format: int32
+        userId:
+          type: integer
+          format: int64
+        finalScore:
+          type: integer
+          format: int32
+        datePlayed:
+          type: string
+          format: date-time
+      required:
+        - gameHistoryId
+        - highScore
+        - userId
+        - finalScore
+        - datePlayed
+    
+    UserStatistics:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        username:
+          type: string
+        gamesPlayed:
+          type: integer
+          format: int32
+        highestScore:
+          type: integer
+          format: int32
+        averageScore:
+          type: number
+          format: float
+        totalLinesCleared:
+          type: integer
+          format: int32
+        totalSingleLines:
+          type: integer
+          format: int32
+        totalDoubleLines:
+          type: integer
+          format: int32
+        totalTripleLines:
+          type: integer
+          format: int32
+        totalTetrises:
+          type: integer
+          format: int32
+        averageDuration:
+          type: number
+          format: float
+      required:
+        - userId
+        - username
+        - gamesPlayed

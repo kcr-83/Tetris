@@ -1,0 +1,1 @@
+I want to build a 2D tetris game. Tetris is a game where you arrange falling blocks (tetrominoes) to fill rows on a board. The goal of the game is to remove full rows, which gives you points and prevents the board from overflowing. The game ends when a new block cannot be placed on the board.

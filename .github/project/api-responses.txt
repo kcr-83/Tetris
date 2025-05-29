@@ -1,0 +1,365 @@
+# Tetris API Example Responses
+
+## User Management
+
+### GET /api/users/{userId}
+```json
+{
+  "userId": 1,
+  "username": "tetrismaster",
+  "email": "player@example.com",
+  "dateCreated": "2025-03-15T14:30:22Z",
+  "lastLogin": "2025-05-28T19:45:12Z"
+}
+```
+
+### GET /api/users/{userId}/settings
+```json
+{
+  "settingId": 1,
+  "userId": 1,
+  "controlScheme": "Custom",
+  "soundEffectsEnabled": true,
+  "musicEnabled": true,
+  "colorTheme": "Dark",
+  "dateModified": "2025-05-26T10:22:15Z"
+}
+```
+
+### PUT /api/users/{userId}/settings
+Request:
+```json
+{
+  "controlScheme": "Custom",
+  "soundEffectsEnabled": true,
+  "musicEnabled": false,
+  "colorTheme": "Dark"
+}
+```
+
+Response:
+```json
+{
+  "settingId": 1,
+  "userId": 1,
+  "controlScheme": "Custom",
+  "soundEffectsEnabled": true,
+  "musicEnabled": false,
+  "colorTheme": "Dark",
+  "dateModified": "2025-05-29T14:22:15Z"
+}
+```
+
+## Game Management
+
+### GET /api/game/difficulties
+```json
+{
+  "difficulties": [
+    {
+      "difficultyId": 1,
+      "difficultyName": "Easy",
+      "initialSpeed": 1000,
+      "speedIncrement": 0.05,
+      "scoreMultiplier": 1.0,
+      "description": "Slow falling speed with normal scoring"
+    },
+    {
+      "difficultyId": 2,
+      "difficultyName": "Medium",
+      "initialSpeed": 750,
+      "speedIncrement": 0.1,
+      "scoreMultiplier": 1.5,
+      "description": "Moderate falling speed with bonus scoring"
+    },
+    {
+      "difficultyId": 3,
+      "difficultyName": "Hard",
+      "initialSpeed": 500,
+      "speedIncrement": 0.15,
+      "scoreMultiplier": 2.0,
+      "description": "Fast falling speed with double scoring"
+    }
+  ]
+}
+```
+
+### GET /api/game/modes
+```json
+{
+  "modes": [
+    {
+      "modeId": 1,
+      "modeName": "Classic",
+      "description": "Standard Tetris gameplay",
+      "timeLimit": null,
+      "rowClearTarget": null
+    },
+    {
+      "modeId": 2,
+      "modeName": "Timed",
+      "description": "Score as many points as possible in a limited time",
+      "timeLimit": 180,
+      "rowClearTarget": null
+    },
+    {
+      "modeId": 3,
+      "modeName": "Challenge",
+      "description": "Clear a specific number of rows as fast as possible",
+      "timeLimit": null,
+      "rowClearTarget": 40
+    }
+  ]
+}
+```
+
+### POST /api/game/new
+Request:
+```json
+{
+  "userId": 1,
+  "difficultyId": 2,
+  "modeId": 1
+}
+```
+
+Response:
+```json
+{
+  "gameId": "550e8400-e29b-41d4-a716-446655440000",
+  "userId": 1,
+  "difficultyId": 2,
+  "modeId": 1,
+  "board": [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "currentScore": 0,
+  "linesCleared": 0,
+  "currentPiece": {
+    "type": "T",
+    "position": { "x": 4, "y": 0 },
+    "rotation": 0
+  },
+  "nextPiece": {
+    "type": "I"
+  }
+}
+```
+
+### POST /api/game/{gameId}/move
+Request:
+```json
+{
+  "direction": "left"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "newPosition": { "x": 3, "y": 0 }
+}
+```
+
+### POST /api/game/{gameId}/rotate
+Request:
+```json
+{
+  "direction": "clockwise"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "newRotation": 1
+}
+```
+
+### POST /api/game/{gameId}/drop
+Response:
+```json
+{
+  "success": true,
+  "newPosition": { "x": 3, "y": 18 },
+  "lockPiece": true,
+  "linesCleared": 1,
+  "linesClearedPositions": [19],
+  "scoreAdded": 100,
+  "newScore": 100
+}
+```
+
+### GET /api/game/{gameId}/state
+```json
+{
+  "gameId": "550e8400-e29b-41d4-a716-446655440000",
+  "userId": 1,
+  "difficultyId": 2,
+  "modeId": 1,
+  "board": [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* ... more rows ... */
+    [1, 0, 0, 0, 2, 2, 2, 0, 0, 3],
+    [1, 1, 3, 3, 2, 2, 2, 3, 3, 3]
+  ],
+  "currentScore": 1500,
+  "linesCleared": 15,
+  "currentLevel": 3,
+  "currentPiece": {
+    "type": "S",
+    "position": { "x": 5, "y": 2 },
+    "rotation": 1
+  },
+  "nextPiece": {
+    "type": "J"
+  },
+  "gameOver": false
+}
+```
+
+### POST /api/game/{gameId}/save
+Request:
+```json
+{
+  "gameName": "My awesome game"
+}
+```
+
+Response:
+```json
+{
+  "saveId": 42,
+  "userId": 1,
+  "gameName": "My awesome game",
+  "difficultyId": 2,
+  "modeId": 1,
+  "currentScore": 1500,
+  "linesCleared": 15,
+  "nextPiece": "J",
+  "dateSaved": "2025-05-29T14:22:15Z"
+}
+```
+
+### GET /api/users/{userId}/saved-games
+```json
+{
+  "savedGames": [
+    {
+      "saveId": 42,
+      "userId": 1,
+      "gameName": "My awesome game",
+      "difficultyId": 2,
+      "modeId": 1,
+      "currentScore": 1500,
+      "linesCleared": 15,
+      "nextPiece": "J",
+      "dateSaved": "2025-05-29T14:22:15Z"
+    },
+    {
+      "saveId": 41,
+      "userId": 1,
+      "gameName": "Hard mode attempt",
+      "difficultyId": 3,
+      "modeId": 1,
+      "currentScore": 3200,
+      "linesCleared": 22,
+      "nextPiece": "Z",
+      "dateSaved": "2025-05-28T12:15:30Z"
+    }
+  ]
+}
+```
+
+### GET /api/users/{userId}/saved-games/{saveId}
+```json
+{
+  "saveId": 42,
+  "userId": 1,
+  "gameName": "My awesome game",
+  "difficultyId": 2,
+  "modeId": 1,
+  "boardState": "serialized board state data",
+  "currentScore": 1500,
+  "linesCleared": 15,
+  "nextPiece": "J",
+  "dateSaved": "2025-05-29T14:22:15Z"
+}
+```
+
+### POST /api/game/end
+Request:
+```json
+{
+  "gameId": "550e8400-e29b-41d4-a716-446655440000",
+  "finalScore": 2300,
+  "linesCleared": 23,
+  "singleLinesCleared": 10,
+  "doubleLinesCleared": 5,
+  "tripleLinesCleared": 1,
+  "tetrisCleared": 0,
+  "gameDuration": 345
+}
+```
+
+Response:
+```json
+{
+  "gameHistoryId": 123,
+  "highScore": true,
+  "previousHighScore": 2000,
+  "userId": 1,
+  "finalScore": 2300,
+  "datePlayed": "2025-05-29T14:22:15Z"
+}
+```
+
+## Statistics
+
+### GET /api/users/{userId}/statistics
+```json
+{
+  "userId": 1,
+  "username": "tetrismaster",
+  "gamesPlayed": 42,
+  "highestScore": 7500,
+  "averageScore": 3200.5,
+  "totalLinesCleared": 1250,
+  "totalSingleLines": 680,
+  "totalDoubleLines": 245,
+  "totalTripleLines": 85,
+  "totalTetrises": 60,
+  "averageDuration": 324.6
+}
+```
+
+### POST /api/users/{userId}/statistics/reset
+Response:
+```json
+{
+  "success": true,
+  "message": "Statistics reset successfully"
+}
+```
