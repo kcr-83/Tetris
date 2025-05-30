@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
-    <StartupObject>Tetris.Core.Tests.TetrominoDemo</StartupObject>
+    <StartupObject>Tetris.Core.Tests.GameEngineDemo</StartupObject>
   </PropertyGroup>
 
 </Project>
