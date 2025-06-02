@@ -4,11 +4,10 @@ using System.Timers;
 using Timer = System.Timers.Timer;
 
 namespace Tetris.Core.Models
-{
-    /// <summary>
+{    /// <summary>
     /// Manages the game state and mechanics of a Tetris game, including the falling of blocks.
     /// </summary>
-    public class GameEngine : IDisposable
+    public class GameEngineBackup : IDisposable
     {
         #region Constants
 
@@ -133,20 +132,22 @@ namespace Tetris.Core.Models
         /// <summary>
         /// Occurs when the game board state changes.
         /// </summary>
-        public event EventHandler? BoardUpdated;
+        public event EventHandler BoardUpdated;
 
         /// <summary>
         /// Occurs when the score changes.
         /// </summary>
-        public event EventHandler? ScoreUpdated;
+        public event EventHandler ScoreUpdated;
 
         /// <summary>
         /// Occurs when the level increases.
         /// </summary>
-        public event EventHandler? LevelIncreased;        /// <summary>
-        /// Occurs when the game ends, providing game statistics.
+        public event EventHandler LevelIncreased;
+
+        /// <summary>
+        /// Occurs when the game ends.
         /// </summary>
-        public event EventHandler<GameOverEventArgs>? GameOver;
+        public event EventHandler GameOver;
 
         #endregion
 
@@ -155,17 +156,14 @@ namespace Tetris.Core.Models
         /// <summary>
         /// Initializes a new instance of the GameEngine class.
         /// </summary>
-        public GameEngine()
+        public GameEngineBackup()
         {
             Board = new Board();
             _fallTimer = new Timer(InitialFallDelay);
             _fallTimer.Elapsed += FallTimer_Elapsed;
-            _currentFallDelay = InitialFallDelay;            Level = 1;
+            _currentFallDelay = InitialFallDelay;
+            Level = 1;
             Score = 0;
-            SingleRowsCleared = 0;
-            DoubleRowsCleared = 0;
-            TripleRowsCleared = 0;
-            TetrisCleared = 0;
             _isFastDropActive = false;
             _isGamePaused = false;
             _isGameOver = false;
@@ -261,10 +259,12 @@ namespace Tetris.Core.Models
 
         #endregion
 
-        #region Game Mechanics Methods        /// <summary>
+        #region Game Mechanics Methods
+
+        /// <summary>
         /// Handles the timer elapsed event, causing the current piece to fall.
         /// </summary>
-        private void FallTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        private void FallTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_isGamePaused || _isGameOver)
                 return;
@@ -423,19 +423,23 @@ namespace Tetris.Core.Models
             {
                 UpdateScore(rowsCleared);
                 CheckForLevelUp();
-            }            // Check if game is over
+            }
+
+            // Check if game is over
             if (Board.IsGameOver())
             {
-                EndGame(GameOverReason.BoardFull);
+                EndGame();
                 return;
             } // Spawn new piece
             CurrentPiece = NextPiece;
-            NextPiece = TetrominoFactory.CreateRandomTetromino();            // Check if the new piece can be placed on the board
+            NextPiece = TetrominoFactory.CreateRandomTetromino();
+
+            // Check if the new piece can be placed on the board
             Point[] newPositions = CurrentPiece.GetAbsolutePositions();
             if (Board.CheckCollision(ToTuples(newPositions)))
             {
                 // Can't place new piece, game over
-                EndGame(GameOverReason.NoSpaceForNewPiece);
+                EndGame();
                 return;
             }
 
@@ -445,8 +449,7 @@ namespace Tetris.Core.Models
         /// <summary>
         /// Updates the game score based on the number of rows cleared.
         /// </summary>
-        /// <param name="rowsCleared">The number of rows cleared.</param>
-        private void UpdateScore(int rowsCleared)
+        /// <param name="rowsCleared">The number of rows cleared.</param>        private void UpdateScore(int rowsCleared)
         {
             // Basic scoring system:
             // 1 row = 100 points
@@ -455,7 +458,8 @@ namespace Tetris.Core.Models
             // 4 rows (Tetris) = 800 points
             // All scores are multiplied by the current level
             int baseScore = 0;
-            switch (rowsCleared)
+            
+            // Update the specific row clear counter            switch (rowsCleared)
             {
                 case 1:
                     baseScore = SingleRowScore;
@@ -512,15 +516,16 @@ namespace Tetris.Core.Models
                 _fallTimer.Interval = _currentFallDelay;
                 _fallTimer.Start();
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Ends the game.
         /// </summary>
-        /// <param name="reason">The reason why the game ended.</param>
-        private void EndGame(GameOverReason reason = GameOverReason.BoardFull)
+        private void EndGame()
         {
             _isGameOver = true;
             _fallTimer.Stop();
-            OnGameOver(reason);
+            OnGameOver();
         }
 
         #endregion
@@ -530,7 +535,7 @@ namespace Tetris.Core.Models
         /// <summary>
         /// Converts an array of Points to an enumerable of (int X, int Y) tuples.
         /// </summary>
-        private IEnumerable<(int X, int Y)> ToTuples(Point[] points)
+        public static IEnumerable<(int X, int Y)> ToTuples(Point[] points)
         {
             foreach (var point in points)
             {
@@ -588,21 +593,16 @@ namespace Tetris.Core.Models
         protected virtual void OnLevelIncreased()
         {
             LevelIncreased?.Invoke(this, EventArgs.Empty);
-        }        /// <summary>
-        /// Raises the GameOver event with game statistics.
+        }
+
+        /// <summary>
+        /// Raises the GameOver event.
+        /// </summary>        /// <summary>
+        /// Raises the GameOver event.
         /// </summary>
-        /// <param name="reason">The reason why the game ended.</param>
-        protected virtual void OnGameOver(GameOverReason reason)
+        protected virtual void OnGameOver()
         {
-            var eventArgs = new GameOverEventArgs(
-                Score,
-                Level,
-                GetTotalRowsCleared(),
-                GetLineStatistics(),
-                reason
-            );
-            
-            GameOver?.Invoke(this, eventArgs);
+            GameOver?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion

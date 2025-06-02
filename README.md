@@ -45,6 +45,8 @@ This project is a complete implementation of the classic Tetris game with modern
 
 - Standard 10x20 Tetris board gameplay
 - All 7 classic Tetromino blocks with proper rotation logic
+- Intuitive block controls for movement, rotation, and dropping
+- Block drop preview visualization
 - Multiple game modes (Classic, Timed, Challenge)
 - Variable difficulty levels
 - Game state saving and loading
@@ -219,10 +221,23 @@ Z-Block (Red):
       ■ ■
 ```
 
+### Game Controls
+
+The TetrominoController provides an intuitive interface for controlling Tetris blocks:
+
+- **Move Left/Right**: Move the current Tetromino horizontally
+- **Rotate Clockwise/Counter-clockwise**: Change the orientation of the Tetromino
+- **Soft Drop**: Accelerate the falling speed temporarily
+- **Hard Drop**: Immediately place the Tetromino at the lowest possible position
+
+The controller also provides a preview of where the piece would land if hard-dropped, helping players plan their moves.
+
+For more details on the controller, see [tetromino-controller.md](docs/tetromino-controller.md).
+
 ### Game Flow
 
 1. A Tetromino spawns at the top of the board
-2. Player controls the Tetromino (move left/right, rotate, drop)
+2. Player controls the Tetromino (move left/right, rotate, soft/hard drop)
 3. Tetromino falls at a constant rate determined by current level
 4. When a Tetromino can't fall further, it locks in place
 5. Full rows are checked and cleared, awarding points
@@ -232,18 +247,30 @@ Z-Block (Red):
 
 ### Core Game Components
 
-```
+```ascii
 ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
-│   TetrisGame   │     │     Board      │     │   Tetromino    │
+│   GameEngine   │     │     Board      │     │   Tetromino    │
 ├────────────────┤     ├────────────────┤     ├────────────────┤
 │ - board        │1    │ - grid         │     │ - position     │
-│ - currentBlock ├─────┤ - rowsCleared  │     │ - rotationState│
-│ - nextBlock    │     │                │     │ - blocks       │
+│ - currentPiece ├─────┤ - rowsCleared  │     │ - rotationState│
+│ - nextPiece    │     │                │     │ - blocks       │
 │ - score        │     │ + AddBlock()   │1    │ + Move()       │
 │ - level        │     │ + RemoveRow()  ├─────┤ + Rotate()     │
 │ - gameOver     │     │ + IsRowFull()  │0..* │ + GetPositions │
-└────────────────┘     └────────────────┘     └─────────────┬──┘
-                                                            │
+└───────┬────────┘     └────────────────┘     └─────────────┬──┘
+        │                                                   │
+        │                                                   │
+        │        ┌────────────────────┐                     │
+        │        │ TetrominoController│                     │
+        │        ├────────────────────┤                     │
+        └────────┤ - gameEngine       │                     │
+                 ├────────────────────┤                     │
+                 │ + MoveLeft()       │                     │
+                 │ + MoveRight()      │                     │
+                 │ + RotateClockwise()│                     │
+                 │ + HardDrop()       │─────────────────────┘
+                 │ + GetBoardPreview()│
+                 └────────────────────┘
                                                             │
                       ┌────────────┐         ┌─────────┐    │
                       │            │         │         │    │
