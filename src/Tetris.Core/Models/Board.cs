@@ -222,20 +222,61 @@ namespace Tetris.Core.Models
         /// <returns>The number of rows removed.</returns>
         public int RemoveFullRows()
         {
-            int rowsRemoved = 0;
+            return RemoveFullRowsWithIndices().Length;
+        }
+
+        /// <summary>
+        /// Removes full rows from the board and returns the indices of the removed rows.
+        /// </summary>
+        /// <returns>An array containing the indices of the removed rows.</returns>
+        public int[] RemoveFullRowsWithIndices()
+        {
+            List<int> clearedRows = new List<int>();
 
             // Check each row from bottom to top
             for (int y = Height - 1; y >= 0; y--)
             {
-                if (IsRowFull(y))
+                bool isRowFull = true;
+
+                // Check if the row is full
+                for (int x = 0; x < Width; x++)
                 {
-                    RemoveRow(y);
-                    rowsRemoved++;
-                    y++; // Check the same row again as rows have shifted down
+                    if (!Grid[x, y].HasValue)
+                    {
+                        isRowFull = false;
+                        break;
+                    }
+                }
+
+                // If the row is full, clear it and move all rows above it down
+                if (isRowFull)
+                {
+                    clearedRows.Add(y);
+
+                    // Move all rows above this one down
+                    for (int aboveY = y; aboveY > 0; aboveY--)
+                    {
+                        for (int x = 0; x < Width; x++)
+                        {
+                            Grid[x, aboveY] = Grid[x, aboveY - 1];
+                        }
+                    }
+
+                    // Clear the top row
+                    for (int x = 0; x < Width; x++)
+                    {
+                        Grid[x, 0] = null;
+                    }
+
+                    // Increment the number of rows cleared
+                    RowsCleared++;
+
+                    // Since the rows above have moved down, we need to check this row again
+                    y++;
                 }
             }
 
-            return rowsRemoved;
+            return clearedRows.ToArray();
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 # Tetris Web Application - Project Structure
 
 ## Overview
-This document outlines the project structure for a Tetris web application built using .NET Core 6.0 and C#. The application follows an MVC architecture with additional services and components to handle game logic.
+This document outlines the project structure for a Tetris web application built using .NET Core and C#. The application follows an MVC architecture with additional services and components to handle game logic.
 
 ## Solution Structure
 
@@ -49,27 +49,26 @@ Tetris.sln
 │       ├── GameService.cs           # Game state management
 │       ├── UserService.cs           # User data management
 │       └── StatisticsService.cs     # Game statistics management
-├── Tetris.Core/                     # Core game logic library
-│   ├── Models/                      # Domain models
-│   │   ├── Board.cs                 # Game board representation
-│   │   ├── Tetromino.cs             # Abstract tetromino class
-│   │   ├── Tetrominos/              # Specific tetromino implementations
-│   │   │   ├── I_Tetromino.cs       # I-shaped tetromino
-│   │   │   ├── J_Tetromino.cs       # J-shaped tetromino
-│   │   │   ├── L_Tetromino.cs       # L-shaped tetromino
-│   │   │   ├── O_Tetromino.cs       # O-shaped tetromino
-│   │   │   ├── S_Tetromino.cs       # S-shaped tetromino
-│   │   │   ├── T_Tetromino.cs       # T-shaped tetromino
-│   │   │   └── Z_Tetromino.cs       # Z-shaped tetromino
-│   │   └── GameSettings.cs          # Game configuration settings
-│   ├── Services/                    # Core service interfaces
-│   │   ├── IGameLogic.cs            # Game logic interface
-│   │   ├── IScoreCalculator.cs      # Score calculation interface
-│   │   └── IDifficultyManager.cs    # Difficulty management interface
-│   └── Implementations/             # Core service implementations
-│       ├── GameLogic.cs             # Game logic implementation
-│       ├── ScoreCalculator.cs       # Score calculation implementation
-│       └── DifficultyManager.cs     # Difficulty management implementation
+├── Tetris.Core/                    # Core game logic and UI components
+│   ├── Models/                      # Core game models
+│   │   ├── Board.cs                 # Game board implementation
+│   │   ├── BoardExtensions.cs       # Extension methods for the Board
+│   │   ├── GameEngine.cs            # Main game logic engine
+│   │   ├── GameEvents.cs            # Event argument classes for game events
+│   │   ├── ITetromino.cs            # I-shaped tetromino piece
+│   │   ├── JTetromino.cs            # J-shaped tetromino piece
+│   │   ├── LTetromino.cs            # L-shaped tetromino piece
+│   │   ├── OTetromino.cs            # O-shaped tetromino piece
+│   │   ├── STetromino.cs            # S-shaped tetromino piece
+│   │   ├── TTetromino.cs            # T-shaped tetromino piece
+│   │   ├── ZTetromino.cs            # Z-shaped tetromino piece
+│   │   ├── Tetromino.cs             # Abstract base class for tetromino pieces
+│   │   └── TetrominoFactory.cs      # Factory for creating tetromino pieces
+│   └── UI/                          # User interface components
+│       ├── GameplayInterface.cs     # Main gameplay display component
+│       ├── MainMenuInterface.cs     # Main menu display component
+│       ├── GameOverDisplay.cs       # Game over display component
+│       └── TetrisGame.cs            # Main game controller class
 ├── Tetris.Data/                     # Data access layer
 │   ├── ApplicationDbContext.cs      # EF Core database context
 │   ├── Repositories/                # Data repositories

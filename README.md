@@ -46,9 +46,17 @@ This project is a complete implementation of the classic Tetris game with modern
 - Standard 10x20 Tetris board gameplay
 - All 7 classic Tetromino blocks with proper rotation logic
 - Intuitive block controls for movement, rotation, and dropping
-- Block drop preview visualization
+- Block drop preview visualization (ghost piece)
+- Comprehensive gameplay interface with:
+  - Current game board display
+  - Score, level, and cleared rows tracking
+  - Next piece preview
+  - Difficulty level indicator
+  - Line clear statistics
 - Multiple game modes (Classic, Timed, Challenge)
 - Variable difficulty levels
+- Special animations for level increases and line clears
+- Pause functionality with overlay
 - Game state saving and loading
 - User statistics and high scores
 - Responsive UI design for various screen sizes

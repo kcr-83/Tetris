@@ -138,12 +138,17 @@ namespace Tetris.Core.Models
         /// <summary>
         /// Occurs when the score changes.
         /// </summary>
-        public event EventHandler? ScoreUpdated;
-
-        /// <summary>
+        public event EventHandler? ScoreUpdated;        /// <summary>
         /// Occurs when the level increases.
         /// </summary>
-        public event EventHandler? LevelIncreased;        /// <summary>
+        public event EventHandler<LevelIncreasedEventArgs>? LevelIncreased;
+        
+        /// <summary>
+        /// Occurs when rows are cleared.
+        /// </summary>
+        public event EventHandler<RowsClearedEventArgs>? RowsCleared;
+        
+        /// <summary>
         /// Occurs when the game ends, providing game statistics.
         /// </summary>
         public event EventHandler<GameOverEventArgs>? GameOver;
@@ -415,15 +420,14 @@ namespace Tetris.Core.Models
         {
             // Add the current piece to the board
             Point[] positions = CurrentPiece.GetAbsolutePositions();
-            Board.AddBlocks(ToTuples(positions), CurrentPiece.Id);
-
-            // Check for completed rows and update score
-            int rowsCleared = Board.RemoveFullRows();
+            Board.AddBlocks(ToTuples(positions), CurrentPiece.Id);            // Check for completed rows and update score
+            int[] clearedRowIndices = Board.RemoveFullRowsWithIndices();
+            int rowsCleared = clearedRowIndices.Length;
             if (rowsCleared > 0)
             {
-                UpdateScore(rowsCleared);
+                UpdateScore(rowsCleared, clearedRowIndices);
                 CheckForLevelUp();
-            }            // Check if game is over
+            }// Check if game is over
             if (Board.IsGameOver())
             {
                 EndGame(GameOverReason.BoardFull);
@@ -440,13 +444,12 @@ namespace Tetris.Core.Models
             }
 
             OnBoardUpdated();
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Updates the game score based on the number of rows cleared.
         /// </summary>
         /// <param name="rowsCleared">The number of rows cleared.</param>
-        private void UpdateScore(int rowsCleared)
+        /// <param name="clearedRowIndices">The indices of the cleared rows.</param>
+        private void UpdateScore(int rowsCleared, int[] clearedRowIndices)
         {
             // Basic scoring system:
             // 1 row = 100 points
@@ -475,8 +478,12 @@ namespace Tetris.Core.Models
                     break;
             }
 
-            Score += baseScore * Level;
+            int scoreGained = baseScore * Level;
+            Score += scoreGained;
+            
+            // Raise events
             OnScoreUpdated();
+            OnRowsCleared(rowsCleared, scoreGained, clearedRowIndices);
         }
 
         /// <summary>
@@ -488,10 +495,10 @@ namespace Tetris.Core.Models
             int newLevel = (totalRowsCleared / RowsPerLevel) + 1;
 
             if (newLevel > Level)
-            {
+            {                int oldLevel = Level;
                 Level = newLevel;
                 UpdateFallSpeed();
-                OnLevelIncreased();
+                OnLevelIncreased(oldLevel, newLevel);
             }
         }
 
@@ -572,23 +579,32 @@ namespace Tetris.Core.Models
         protected virtual void OnBoardUpdated()
         {
             BoardUpdated?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Raises the ScoreUpdated event.
         /// </summary>
         protected virtual void OnScoreUpdated()
         {
             ScoreUpdated?.Invoke(this, EventArgs.Empty);
         }
-
+        
         /// <summary>
+        /// Raises the RowsCleared event.
+        /// </summary>
+        /// <param name="rowsCleared">The number of rows cleared.</param>
+        /// <param name="scoreGained">The score gained from clearing the rows.</param>
+        /// <param name="clearedRowIndices">The indices of the rows that were cleared.</param>
+        protected virtual void OnRowsCleared(int rowsCleared, int scoreGained, int[] clearedRowIndices)
+        {
+            RowsCleared?.Invoke(this, new RowsClearedEventArgs(rowsCleared, scoreGained, clearedRowIndices));
+        }/// <summary>
         /// Raises the LevelIncreased event.
         /// </summary>
-        protected virtual void OnLevelIncreased()
+        /// <param name="oldLevel">The previous level.</param>
+        /// <param name="newLevel">The new level reached.</param>
+        protected virtual void OnLevelIncreased(int oldLevel, int newLevel)
         {
-            LevelIncreased?.Invoke(this, EventArgs.Empty);
-        }        /// <summary>
+            LevelIncreased?.Invoke(this, new LevelIncreasedEventArgs(oldLevel, newLevel));
+        }/// <summary>
         /// Raises the GameOver event with game statistics.
         /// </summary>
         /// <param name="reason">The reason why the game ended.</param>

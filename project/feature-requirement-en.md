@@ -61,6 +61,18 @@ Game management functions, such as save/load game state, statistics, and setting
 - **US02-03-01**: As a player, I want the game interface to be responsive and adapt to different screen sizes.
 - **US02-03-02**: As a player, I want the controls to work smoothly and without delays.
 
+#### F02-07: Gameplay Interface
+- **US02-07-01**: As a player, I want to see the current game board with all placed blocks clearly displayed.
+- **US02-07-02**: As a player, I want to see my current score prominently displayed during gameplay.
+- **US02-07-03**: As a player, I want to see my current level and how it affects the gameplay speed.
+- **US02-07-04**: As a player, I want to see how many rows I've cleared during the current game.
+- **US02-07-05**: As a player, I want to see a preview of the next piece that will appear.
+- **US02-07-06**: As a player, I want to see a ghost piece showing where my current piece will land.
+- **US02-07-07**: As a player, I want to receive visual feedback when I clear rows or reach a new level.
+- **US02-07-08**: As a player, I want to see game statistics such as singles, doubles, triples, and tetris clears.
+- **US02-07-09**: As a player, I want a clear indication of the current difficulty level.
+- **US02-07-10**: As a player, I want to see a pause overlay when I pause the game.
+
 ### EP03: Gameplay Features
 
 #### F03-01: Difficulty Levels
