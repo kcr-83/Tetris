@@ -53,6 +53,9 @@ This project is a complete implementation of the classic Tetris game with modern
   - Next piece preview
   - Difficulty level indicator
   - Line clear statistics
+  - Responsive interface that adapts to different console window sizes
+  - Compact mode for smaller screens
+  - Double buffering for smoother rendering
 - Multiple game modes (Classic, Timed, Challenge)
 - Variable difficulty levels
 - Special animations for level increases and line clears

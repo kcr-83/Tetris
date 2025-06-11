@@ -10,7 +10,7 @@ namespace Tetris.Core.UI
     /// Provides a graphical user interface for the Tetris gameplay screen,
     /// displaying the game board, score, level, and other game information.
     /// </summary>
-    public class GameplayInterface
+    public partial class GameplayInterface
     {
         #region Constants
 
@@ -33,13 +33,25 @@ namespace Tetris.Core.UI
 
         #region Fields
 
-        private readonly GameEngine _gameEngine;
-        private int _windowWidth;
-        private int _windowHeight;
-        private int _boardStartX;
-        private int _boardStartY;
-        private int _sidePanelStartX;
-        private bool _initialized;
+    private readonly GameEngine _gameEngine;
+    private int _windowWidth;
+    private int _windowHeight;
+    private int _boardStartX;
+    private int _boardStartY;
+    private int _sidePanelStartX;
+    private bool _initialized;
+    private int _lastWindowWidth;
+    private int _lastWindowHeight;
+    private bool _isWindowTooSmall;
+    private bool _isCompactMode;
+    
+    // Minimum requirements for the game display
+    private const int MinimumWindowWidth = 60;
+    private const int MinimumWindowHeight = 25;
+    
+    // Compact mode thresholds
+    private const int CompactModeWidth = 50;
+    private const int CompactModeHeight = 20;
 
         #endregion
 
@@ -277,6 +289,29 @@ namespace Tetris.Core.UI
             Console.Clear();
             CalculateLayout();
             Render();
+        }
+
+        /// <summary>
+        /// Shows a message indicating the window is too small.
+        /// </summary>
+        public void ShowWindowTooSmallMessage()
+        {
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.Clear();
+            
+            Console.ForegroundColor = ConsoleColor.Red;
+            
+            int centerX = Math.Max(0, Console.WindowWidth / 2 - 15);
+            int centerY = Math.Max(0, Console.WindowHeight / 2 - 2);
+            
+            Console.SetCursorPosition(centerX, centerY);
+            Console.WriteLine("┌───────────────────────────┐");
+            Console.SetCursorPosition(centerX, centerY + 1);
+            Console.WriteLine("│   Window size too small   │");
+            Console.SetCursorPosition(centerX, centerY + 2);
+            Console.WriteLine("│ Please resize your window │");
+            Console.SetCursorPosition(centerX, centerY + 3);
+            Console.WriteLine("└───────────────────────────┘");
         }
 
         #endregion

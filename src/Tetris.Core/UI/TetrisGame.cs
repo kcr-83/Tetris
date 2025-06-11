@@ -10,14 +10,15 @@ namespace Tetris.Core.UI
     public class TetrisGame : IDisposable
     {
         #region Fields
-
         private readonly GameEngine _gameEngine;
         private readonly MainMenuInterface _mainMenu;
         private readonly GameOverDisplay _gameOverDisplay;
         private readonly GameplayInterface _gameplayInterface;
+        private GameplayInterfaceComplete? _gameplayInterfaceComplete;
         private bool _isGameActive;
         private bool _isPaused;
         private bool _isExiting;
+        private bool _useResponsiveInterface;
 
         #endregion
 
@@ -25,13 +26,15 @@ namespace Tetris.Core.UI
 
         /// <summary>
         /// Initializes a new instance of the TetrisGame class.
-        /// </summary>
+        /// </summary>        
         public TetrisGame()
         {
             _gameEngine = new GameEngine();
             _mainMenu = new MainMenuInterface(_gameEngine);
             _gameOverDisplay = new GameOverDisplay(_gameEngine);
             _gameplayInterface = new GameplayInterface(_gameEngine);
+            _gameplayInterfaceComplete = new GameplayInterfaceComplete(_gameEngine);
+            _useResponsiveInterface = true; // Enable responsive interface by default
 
             // Set up event handlers
             _mainMenu.NewGameRequested += OnNewGameRequested;
@@ -85,9 +88,7 @@ namespace Tetris.Core.UI
 
         #endregion
 
-        #region Private Methods
-
-        /// <summary>
+        #region Private Methods        /// <summary>
         /// Handles the game loop when a game is active.
         /// </summary>
         private async Task RunGameLoopAsync()
@@ -98,16 +99,32 @@ namespace Tetris.Core.UI
             // Reset state for new game
             _isPaused = false;
 
+            // Initialize the game interface
+            _gameplayInterface.Initialize();
+
             // Display initial board
             DisplayGame();
+
+            // Cache window size values to detect changes
+            int lastWindowWidth = Console.WindowWidth;
+            int lastWindowHeight = Console.WindowHeight;
 
             // Game loop continues until game is over or player exits
             while (_isGameActive && !_isExiting)
             {
+                // Check for window resize
+                if (Console.WindowWidth != lastWindowWidth || Console.WindowHeight != lastWindowHeight)
+                {
+                    lastWindowWidth = Console.WindowWidth;
+                    lastWindowHeight = Console.WindowHeight;
+                    _gameplayInterface.HandleResize();
+                }
+
                 // Only process input and update display if game is not paused
                 if (!_isPaused)
                 {
-                    if (Console.KeyAvailable)
+                    // Process all available input to prevent input lag
+                    while (Console.KeyAvailable)
                     {
                         ProcessGameInput();
                     }
@@ -133,33 +150,38 @@ namespace Tetris.Core.UI
                     }
                 }
 
-                await Task.Delay(50); // Short delay to prevent CPU overuse
+                // Adaptive delay based on level for smoother gameplay at higher levels
+                int frameDelay = Math.Max(10, 50 - (_gameEngine.Level * 2));
+                await Task.Delay(frameDelay);
             }
-        }
-
-        /// <summary>
-        /// Processes user input during gameplay.
-        /// </summary>
+        }        /// <summary>
+                 /// Processes user input during gameplay.
+                 /// </summary>
         private void ProcessGameInput()
         {
             var key = Console.ReadKey(true);
+            bool fastDropActive = false;
 
             switch (key.Key)
             {
                 case ConsoleKey.LeftArrow:
+                    // Quick successive moves for responsive controls
                     _gameEngine.MovePieceLeft();
                     break;
 
                 case ConsoleKey.RightArrow:
+                    // Quick successive moves for responsive controls
                     _gameEngine.MovePieceRight();
                     break;
 
                 case ConsoleKey.UpArrow:
+                    // Support for multiple rotations in quick succession
                     _gameEngine.RotatePieceClockwise();
                     break;
 
                 case ConsoleKey.DownArrow:
                     _gameEngine.ActivateFastDrop();
+                    fastDropActive = true;
                     break;
 
                 case ConsoleKey.Spacebar:
@@ -173,21 +195,32 @@ namespace Tetris.Core.UI
                 case ConsoleKey.Escape:
                     PromptExitToMenu();
                     break;
+
+                // Additional keys for improved controls
+                case ConsoleKey.Z: // Alternative rotation (counterclockwise)
+                    // If implemented in the game engine
+                    // _gameEngine.RotatePieceCounterclockwise();
+                    break;
+
+                case ConsoleKey.C: // Hold piece functionality if implemented
+                    // If implemented in the game engine
+                    // _gameEngine.HoldCurrentPiece();
+                    break;
             }
 
-            // Release fast drop if down arrow is released
-            if (key.Key != ConsoleKey.DownArrow)
+            // Release fast drop if down arrow is released and no other keys maintain it
+            if (!fastDropActive)
             {
                 _gameEngine.DeactivateFastDrop();
             }
-        }        /// <summary>
-        /// Displays the current game state using the GameplayInterface.
-        /// </summary>
+        }/// <summary>
+         /// Displays the current game state using the GameplayInterface.
+         /// </summary>
         private void DisplayGame()
         {
             // Use the GameplayInterface to render the game
             _gameplayInterface.Render();
-            
+
             // Show pause overlay if game is paused
             if (_isPaused)
             {
@@ -217,7 +250,7 @@ namespace Tetris.Core.UI
         {
             _isPaused = true;
             DisplayGame(); // Show pause overlay first
-            
+
             int centerX = Console.WindowWidth / 2 - 15;
             int centerY = Console.WindowHeight / 2 - 2;
 
@@ -281,13 +314,13 @@ namespace Tetris.Core.UI
             // Let the game over display show its message
             // Control will return to the main menu when the player presses a key
         }        /// <summary>
-        /// Handles the ReturnToMenuRequested event from the game over display.
-        /// </summary>
+                 /// Handles the ReturnToMenuRequested event from the game over display.
+                 /// </summary>
         private void OnReturnToMenuRequested(object? sender, EventArgs e)
         {
             _isGameActive = false;
         }
-        
+
         /// <summary>
         /// Handles the LevelIncreased event from the game engine.
         /// </summary>
@@ -298,7 +331,7 @@ namespace Tetris.Core.UI
                 await _gameplayInterface.ShowLevelUpAnimationAsync(e.NewLevel);
             }
         }
-        
+
         /// <summary>
         /// Handles the RowsCleared event from the game engine.
         /// </summary>
@@ -307,6 +340,155 @@ namespace Tetris.Core.UI
             if (_isGameActive && !_isPaused)
             {
                 await _gameplayInterface.ShowRowsClearedAnimationAsync(e.RowsCleared, e.ScoreGained);
+            }
+        }
+
+        #endregion
+
+        #region Responsive Interface Methods
+
+        /// <summary>
+        /// Handles the game loop when a game is active, using the enhanced responsive interface.
+        /// </summary>
+        private async Task RunGameLoopWithResponsiveInterfaceAsync()
+        {
+            Console.Clear();
+            Console.CursorVisible = false;
+
+            // Create the responsive interface on demand
+            if (_gameplayInterfaceComplete == null)
+            {
+                _gameplayInterfaceComplete = new GameplayInterfaceComplete(_gameEngine);
+            }
+
+            // Reset state for new game
+            _isPaused = false;
+
+            // Initialize the game interface with double buffering enabled
+            _gameplayInterfaceComplete.EnableDoubleBuffering = true;
+            _gameplayInterfaceComplete.Initialize();
+
+            // Display initial board
+            _gameplayInterfaceComplete.Render();
+
+            // Variables for controlling timing
+            const int targetFrameRate = 60;
+            const int targetFrameTime = 1000 / targetFrameRate;
+            DateTime lastFrameTime = DateTime.Now;
+            DateTime lastGameUpdate = DateTime.Now;
+            int gameUpdateInterval = 50;  // Start with 20 updates per second
+
+            // Game loop continues until game is over or player exits
+            while (_isGameActive && !_isExiting)
+            {
+                // Start frame timing
+                DateTime frameStartTime = DateTime.Now;
+
+                // Update game update interval based on level (faster updates at higher levels)
+                gameUpdateInterval = Math.Max(10, 50 - (_gameEngine.Level * 2));
+
+                // Check for window resize
+                _gameplayInterfaceComplete.CheckForResize();
+
+                // Only process input and update display if game is not paused
+                if (!_isPaused)
+                {
+                    // Process all available input with priority for responsiveness
+                    int maxInputProcessingPerFrame = 10; // Prevent input flood
+                    int inputsProcessed = 0;
+
+                    while (Console.KeyAvailable && inputsProcessed < maxInputProcessingPerFrame)
+                    {
+                        var key = Console.ReadKey(true);
+
+                        // Use the enhanced input processing
+                        bool fastDropActive = _gameplayInterfaceComplete.ProcessGameInput(key);
+
+                        // Handle special keys like pause and exit
+                        HandleSpecialKeys(key);
+
+                        // Ensure fast drop state is consistent
+                        if (!fastDropActive)
+                        {
+                            _gameEngine.DeactivateFastDrop();
+                        }
+
+                        inputsProcessed++;
+                    }
+
+                    // Update game state at appropriate intervals
+                    TimeSpan timeSinceLastUpdate = DateTime.Now - lastGameUpdate;
+                    if (timeSinceLastUpdate.TotalMilliseconds > gameUpdateInterval)
+                    {
+                        // Update game state
+                        _gameEngine.Update();
+
+                        // Render the game with the current state
+                        _gameplayInterfaceComplete.Render();
+                        lastGameUpdate = DateTime.Now;
+                    }
+                }
+                else
+                {
+                    // When paused, only check for unpause or exit commands
+                    if (Console.KeyAvailable)
+                    {
+                        var key = Console.ReadKey(true);
+                        HandleSpecialKeys(key);
+                    }
+
+                    // Show pause overlay
+                    _gameplayInterfaceComplete.ShowPauseOverlay();
+                }
+
+                // Calculate frame timing and delay to maintain target framerate
+                TimeSpan frameTime = DateTime.Now - frameStartTime;
+                int delayTime = Math.Max(1, targetFrameTime - (int)frameTime.TotalMilliseconds);
+
+                // Use adaptive frame timing for smoother experience
+                await Task.Delay(delayTime);
+            }
+        }
+
+        /// <summary>
+        /// Handles special keys like pause and exit.
+        /// </summary>
+        private void HandleSpecialKeys(ConsoleKeyInfo key)
+        {
+            if (key.Key == ConsoleKey.P)
+            {
+                _isPaused = !_isPaused;
+                if (!_isPaused)
+                {
+                    // Refresh the screen when unpaused
+                    if (_useResponsiveInterface && _gameplayInterfaceComplete != null)
+                    {
+                        _gameplayInterfaceComplete.Render();
+                    }
+                    else
+                    {
+                        _gameplayInterface.Render();
+                    }
+                }
+            }
+            else if (key.Key == ConsoleKey.Escape)
+            {
+                if (_isPaused)
+                {
+                    PromptExitToMenu();
+                }
+                else
+                {
+                    _isPaused = true;
+                    if (_useResponsiveInterface && _gameplayInterfaceComplete != null)
+                    {
+                        _gameplayInterfaceComplete.ShowPauseOverlay();
+                    }
+                    else
+                    {
+                        _gameplayInterface.ShowPauseOverlay();
+                    }
+                }
             }
         }
 

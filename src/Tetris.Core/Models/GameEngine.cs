@@ -36,22 +36,22 @@ namespace Tetris.Core.Models
         /// The delay when player is accelerating the fall (Fast Drop) in milliseconds.
         /// </summary>
         private const double FastDropDelay = 50;
-        
+
         /// <summary>
         /// Base score for clearing a single row.
         /// </summary>
         private const int SingleRowScore = 100;
-        
+
         /// <summary>
         /// Base score for clearing two rows at once.
         /// </summary>
         private const int DoubleRowScore = 300;
-        
+
         /// <summary>
         /// Base score for clearing three rows at once.
         /// </summary>
         private const int TripleRowScore = 500;
-        
+
         /// <summary>
         /// Base score for clearing four rows at once (Tetris).
         /// </summary>
@@ -139,15 +139,15 @@ namespace Tetris.Core.Models
         /// Occurs when the score changes.
         /// </summary>
         public event EventHandler? ScoreUpdated;        /// <summary>
-        /// Occurs when the level increases.
-        /// </summary>
+                                                        /// Occurs when the level increases.
+                                                        /// </summary>
         public event EventHandler<LevelIncreasedEventArgs>? LevelIncreased;
-        
+
         /// <summary>
         /// Occurs when rows are cleared.
         /// </summary>
         public event EventHandler<RowsClearedEventArgs>? RowsCleared;
-        
+
         /// <summary>
         /// Occurs when the game ends, providing game statistics.
         /// </summary>
@@ -165,7 +165,7 @@ namespace Tetris.Core.Models
             Board = new Board();
             _fallTimer = new Timer(InitialFallDelay);
             _fallTimer.Elapsed += FallTimer_Elapsed;
-            _currentFallDelay = InitialFallDelay;            Level = 1;
+            _currentFallDelay = InitialFallDelay; Level = 1;
             Score = 0;
             SingleRowsCleared = 0;
             DoubleRowsCleared = 0;
@@ -445,10 +445,10 @@ namespace Tetris.Core.Models
 
             OnBoardUpdated();
         }        /// <summary>
-        /// Updates the game score based on the number of rows cleared.
-        /// </summary>
-        /// <param name="rowsCleared">The number of rows cleared.</param>
-        /// <param name="clearedRowIndices">The indices of the cleared rows.</param>
+                 /// Updates the game score based on the number of rows cleared.
+                 /// </summary>
+                 /// <param name="rowsCleared">The number of rows cleared.</param>
+                 /// <param name="clearedRowIndices">The indices of the cleared rows.</param>
         private void UpdateScore(int rowsCleared, int[] clearedRowIndices)
         {
             // Basic scoring system:
@@ -480,7 +480,7 @@ namespace Tetris.Core.Models
 
             int scoreGained = baseScore * Level;
             Score += scoreGained;
-            
+
             // Raise events
             OnScoreUpdated();
             OnRowsCleared(rowsCleared, scoreGained, clearedRowIndices);
@@ -495,7 +495,8 @@ namespace Tetris.Core.Models
             int newLevel = (totalRowsCleared / RowsPerLevel) + 1;
 
             if (newLevel > Level)
-            {                int oldLevel = Level;
+            {
+                int oldLevel = Level;
                 Level = newLevel;
                 UpdateFallSpeed();
                 OnLevelIncreased(oldLevel, newLevel);
@@ -520,9 +521,9 @@ namespace Tetris.Core.Models
                 _fallTimer.Start();
             }
         }        /// <summary>
-        /// Ends the game.
-        /// </summary>
-        /// <param name="reason">The reason why the game ended.</param>
+                 /// Ends the game.
+                 /// </summary>
+                 /// <param name="reason">The reason why the game ended.</param>
         private void EndGame(GameOverReason reason = GameOverReason.BoardFull)
         {
             _isGameOver = true;
@@ -580,13 +581,13 @@ namespace Tetris.Core.Models
         {
             BoardUpdated?.Invoke(this, EventArgs.Empty);
         }        /// <summary>
-        /// Raises the ScoreUpdated event.
-        /// </summary>
+                 /// Raises the ScoreUpdated event.
+                 /// </summary>
         protected virtual void OnScoreUpdated()
         {
             ScoreUpdated?.Invoke(this, EventArgs.Empty);
         }
-        
+
         /// <summary>
         /// Raises the RowsCleared event.
         /// </summary>
@@ -597,17 +598,17 @@ namespace Tetris.Core.Models
         {
             RowsCleared?.Invoke(this, new RowsClearedEventArgs(rowsCleared, scoreGained, clearedRowIndices));
         }/// <summary>
-        /// Raises the LevelIncreased event.
-        /// </summary>
-        /// <param name="oldLevel">The previous level.</param>
-        /// <param name="newLevel">The new level reached.</param>
+         /// Raises the LevelIncreased event.
+         /// </summary>
+         /// <param name="oldLevel">The previous level.</param>
+         /// <param name="newLevel">The new level reached.</param>
         protected virtual void OnLevelIncreased(int oldLevel, int newLevel)
         {
             LevelIncreased?.Invoke(this, new LevelIncreasedEventArgs(oldLevel, newLevel));
         }/// <summary>
-        /// Raises the GameOver event with game statistics.
-        /// </summary>
-        /// <param name="reason">The reason why the game ended.</param>
+         /// Raises the GameOver event with game statistics.
+         /// </summary>
+         /// <param name="reason">The reason why the game ended.</param>
         protected virtual void OnGameOver(GameOverReason reason)
         {
             var eventArgs = new GameOverEventArgs(
@@ -617,7 +618,7 @@ namespace Tetris.Core.Models
                 GetLineStatistics(),
                 reason
             );
-            
+
             GameOver?.Invoke(this, eventArgs);
         }
 
