@@ -316,6 +316,29 @@ namespace Tetris.Core.Models
             return result.ToString();
         }
 
+        /// <summary>
+        /// Loads the board state from saved data.
+        /// </summary>
+        /// <param name="grid">The grid state to load.</param>
+        /// <param name="rowsCleared">The number of rows cleared.</param>
+        /// <exception cref="ArgumentNullException">Thrown when grid is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when grid dimensions are invalid.</exception>
+        public void LoadState(int?[,] grid, int rowsCleared)
+        {
+            if (grid == null)
+                throw new ArgumentNullException(nameof(grid));
+
+            if (grid.GetLength(0) != Width || grid.GetLength(1) != Height)
+                throw new ArgumentException("Invalid grid dimensions.", nameof(grid));
+
+            if (rowsCleared < 0)
+                throw new ArgumentException("Rows cleared cannot be negative.", nameof(rowsCleared));
+
+            // Copy the grid state
+            Grid = (int?[,])grid.Clone();
+            RowsCleared = rowsCleared;
+        }
+
         #endregion
     }
 }

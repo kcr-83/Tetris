@@ -52,7 +52,59 @@ public static class TetrominoFactory
     public static Tetromino CreateRandomTetromino()
     {
         Array values = Enum.GetValues(typeof(TetrominoType));
-        TetrominoType randomType = (TetrominoType)values.GetValue(_random.Next(values.Length));
+        TetrominoType randomType = (TetrominoType)(values.GetValue(_random.Next(values.Length)) ?? TetrominoType.I);
         return CreateTetromino(randomType);
+    }
+
+    /// <summary>
+    /// Creates a Tetromino from saved state data.
+    /// </summary>
+    /// <param name="tetrominoState">The saved tetromino state.</param>
+    /// <returns>A Tetromino instance restored from the saved state.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when tetrominoState is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the tetromino ID is invalid.</exception>
+    public static Tetromino CreateFromState(TetrominoState tetrominoState)
+    {
+        if (tetrominoState == null)
+            throw new ArgumentNullException(nameof(tetrominoState));
+
+        Tetromino tetromino = tetrominoState.Id switch
+        {
+            1 => new ITetromino(),
+            2 => new JTetromino(),
+            3 => new LTetromino(),
+            4 => new OTetromino(),
+            5 => new STetromino(),
+            6 => new TTetromino(),
+            7 => new ZTetromino(),
+            _ => throw new ArgumentException($"Invalid tetromino ID: {tetrominoState.Id}", nameof(tetrominoState))
+        };
+
+        // Restore position and rotation state
+        tetromino.Position = tetrominoState.Position;
+        tetromino.RotationState = tetrominoState.RotationState;
+
+        return tetromino;
+    }
+
+    /// <summary>
+    /// Creates a Tetromino by its ID.
+    /// </summary>
+    /// <param name="id">The tetromino ID.</param>
+    /// <returns>A new Tetromino instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when the ID is invalid.</exception>
+    public static Tetromino CreateById(int id)
+    {
+        return id switch
+        {
+            1 => new ITetromino(),
+            2 => new JTetromino(),
+            3 => new LTetromino(),
+            4 => new OTetromino(),
+            5 => new STetromino(),
+            6 => new TTetromino(),
+            7 => new ZTetromino(),
+            _ => throw new ArgumentException($"Invalid tetromino ID: {id}", nameof(id))
+        };
     }
 }

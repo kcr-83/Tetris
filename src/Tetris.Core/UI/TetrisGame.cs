@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Tetris.Core.Models;
+using Tetris.Core.Services;
 
 namespace Tetris.Core.UI
 {
@@ -38,6 +39,7 @@ namespace Tetris.Core.UI
 
             // Set up event handlers
             _mainMenu.NewGameRequested += OnNewGameRequested;
+            _mainMenu.GameLoaded += OnGameLoaded;
             _mainMenu.ExitRequested += OnExitRequested;
             _gameOverDisplay.NewGameRequested += OnNewGameRequested;
             _gameOverDisplay.ReturnToMenuRequested += OnReturnToMenuRequested;
@@ -131,14 +133,14 @@ namespace Tetris.Core.UI
                     // Process all available input to prevent input lag
                     while (Console.KeyAvailable)
                     {
-                        ProcessGameInput();
+                        await ProcessGameInputAsync();
                     }
 
                     DisplayGame();
                 }
                 else
                 {
-                    // When paused, only check for unpause or exit
+                    // When paused, check for unpause, save, or exit
                     if (Console.KeyAvailable)
                     {
                         var key = Console.ReadKey(true);
@@ -146,6 +148,10 @@ namespace Tetris.Core.UI
                         {
                             _isPaused = false;
                             DisplayGame(); // Refresh to remove pause message
+                        }
+                        else if (key.Key == ConsoleKey.S)
+                        {
+                            await SaveGameAsync();
                         }
                         else if (key.Key == ConsoleKey.Escape)
                         {
@@ -164,7 +170,7 @@ namespace Tetris.Core.UI
         /// <summary>
         /// Processes user input during gameplay.
         /// </summary>
-        private void ProcessGameInput()
+        private async Task ProcessGameInputAsync()
         {
             var key = Console.ReadKey(true);
             bool fastDropActive = false;
@@ -197,6 +203,10 @@ namespace Tetris.Core.UI
 
                 case ConsoleKey.P:
                     TogglePause();
+                    break;
+
+                case ConsoleKey.S:
+                    await SaveGameAsync();
                     break;
 
                 case ConsoleKey.Escape:
@@ -314,6 +324,15 @@ namespace Tetris.Core.UI
                 _isGameActive = true;
                 _gameEngine.StartNewGame(DifficultyLevel.Medium, GameMode.Classic);
             }
+        }
+
+        /// <summary>
+        /// Handles the GameLoaded event from the main menu.
+        /// </summary>
+        private void OnGameLoaded(object? sender, GameLoadedEventArgs e)
+        {
+            _isGameActive = true;
+            _gameEngine.LoadGameState(e.GameState);
         }
 
         /// <summary>
@@ -545,6 +564,88 @@ namespace Tetris.Core.UI
                     }
                 }
             }
+        }
+
+        #endregion
+
+        #region Save Game Methods
+
+        /// <summary>
+        /// Saves the current game state using the save game dialog.
+        /// </summary>
+        private async Task SaveGameAsync()
+        {
+            var previouslyPaused = _isPaused;
+            _isPaused = true; // Pause the game during save
+            
+            try
+            {
+                var saveDialog = new SaveGameDialog();
+                string? saveName = await saveDialog.ShowAsync();
+                
+                if (!string.IsNullOrEmpty(saveName))
+                {
+                    var gameState = _gameEngine.CreateGameState();
+                    var saveService = new GameSaveService();
+                    
+                    await saveService.SaveGameAsync(gameState, saveName);
+                    
+                    // Show a brief confirmation message
+                    ShowSaveConfirmation();
+                    await Task.Delay(1000); // Show confirmation for 1 second
+                }
+            }
+            catch (Exception ex)
+            {
+                // Show error message to user
+                ShowSaveErrorMessage(ex.Message);
+                await Task.Delay(2000); // Show error for 2 seconds
+            }
+            finally
+            {
+                // Restore previous pause state
+                _isPaused = previouslyPaused;
+                DisplayGame(); // Refresh the display
+            }
+        }
+
+        /// <summary>
+        /// Shows a save confirmation message on the screen.
+        /// </summary>
+        private void ShowSaveConfirmation()
+        {
+            int centerX = Console.WindowWidth / 2 - 10;
+            int centerY = Console.WindowHeight / 2 - 2;
+            
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.SetCursorPosition(centerX, centerY);
+            Console.WriteLine("┌─────────────────────┐");
+            Console.SetCursorPosition(centerX, centerY + 1);
+            Console.WriteLine("│    Game Saved!      │");
+            Console.SetCursorPosition(centerX, centerY + 2);
+            Console.WriteLine("└─────────────────────┘");
+            Console.ResetColor();
+        }
+
+        /// <summary>
+        /// Shows a save error message on the screen.
+        /// </summary>
+        /// <param name="errorMessage">The error message to display.</param>
+        private void ShowSaveErrorMessage(string errorMessage)
+        {
+            int centerX = Console.WindowWidth / 2 - 15;
+            int centerY = Console.WindowHeight / 2 - 2;
+            
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.SetCursorPosition(centerX, centerY);
+            Console.WriteLine("┌─────────────────────────────┐");
+            Console.SetCursorPosition(centerX, centerY + 1);
+            Console.WriteLine("│       Save Failed!          │");
+            Console.SetCursorPosition(centerX, centerY + 2);
+            Console.WriteLine($"│ {errorMessage.PadRight(27)} │");
+            Console.SetCursorPosition(centerX, centerY + 3);
+            Console.WriteLine("└─────────────────────────────┘");
+            Console.ResetColor();
         }
 
         #endregion

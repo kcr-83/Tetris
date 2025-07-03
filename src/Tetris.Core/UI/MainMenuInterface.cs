@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Tetris.Core.Models;
+using Tetris.Core.Services;
 
 namespace Tetris.Core.UI
 {
@@ -44,6 +45,11 @@ namespace Tetris.Core.UI
         /// Event raised when a new game is requested to start.
         /// </summary>
         public event EventHandler<GameModeSelectionEventArgs>? NewGameRequested;
+
+        /// <summary>
+        /// Event raised when a saved game is loaded.
+        /// </summary>
+        public event EventHandler<GameLoadedEventArgs>? GameLoaded;
 
         /// <summary>
         /// Event raised when the application is requested to exit.
@@ -332,109 +338,36 @@ namespace Tetris.Core.UI
         }
 
         /// <summary>
-        /// Shows the load game menu.
+        /// Shows the load game menu using the new LoadGameDialog.
         /// </summary>
-        private void ShowLoadGameMenu()
+        private async void ShowLoadGameMenu()
         {
-            Console.Clear();
-            Console.ForegroundColor = TitleColor;
-            Console.WriteLine("===== LOAD GAME =====");
-            Console.WriteLine();
-
             try
             {
-                if (!Directory.Exists(SaveDirectory))
+                var loadDialog = new LoadGameDialog();
+                SaveFileInfo? selectedSave = await loadDialog.ShowAsync();
+                
+                if (selectedSave != null)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("No saved games found.");
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.WriteLine("\nPress any key to return to the main menu...");
-                    Console.ReadKey(true);
-                    return;
-                }
-
-                var saveFiles = Directory
-                    .GetFiles(SaveDirectory, $"*{SaveExtension}")
-                    .Select(Path.GetFileNameWithoutExtension)
-                    .ToList();
-
-                if (saveFiles.Count == 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("No saved games found.");
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.WriteLine("\nPress any key to return to the main menu...");
-                    Console.ReadKey(true);
-                    return;
-                }
-
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("Select a saved game to load:");
-                Console.WriteLine();
-
-                for (int i = 0; i < saveFiles.Count; i++)
-                {
-                    Console.WriteLine($"{i + 1}. {saveFiles[i]}");
-                }
-
-                Console.WriteLine("\nEnter the number of the save to load (or 0 to cancel):");
-                string? input = Console.ReadLine();
-                if (
-                    !string.IsNullOrEmpty(input)
-                    && int.TryParse(input, out int selection)
-                    && selection > 0
-                    && selection <= saveFiles.Count
-                )
-                {
-                    string saveName = saveFiles[selection - 1];
-                    if (!string.IsNullOrEmpty(saveName))
-                    {
-                        LoadGame(saveName);
-                    }
+                    // Load the selected game
+                    var saveService = new GameSaveService();
+                    GameState gameState = await saveService.LoadGameAsync(selectedSave.SaveName);
+                    
+                    // Close the main menu
+                    _isActive = false;
+                    
+                    // Raise event to load the game
+                    GameLoaded?.Invoke(this, new GameLoadedEventArgs(gameState));
                 }
             }
             catch (Exception ex)
             {
+                // Show error message
+                Console.Clear();
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error loading games: {ex.Message}");
+                Console.WriteLine($"Failed to load game: {ex.Message}");
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine("\nPress any key to continue...");
-                Console.ReadKey(true);
-            }
-        }
-
-        /// <summary>
-        /// Loads a saved game.
-        /// </summary>
-        /// <param name="saveName">The name of the save file to load.</param>
-        /// <exception cref="ArgumentNullException">Thrown when saveName is null.</exception>
-        private void LoadGame(string saveName)
-        {
-            if (saveName == null)
-            {
-                throw new ArgumentNullException(nameof(saveName));
-            }
-
-            try
-            {
-                // In a real implementation, this would load the game state from a file
-                Console.WriteLine($"Loading game: {saveName}...");
-                Console.WriteLine("This feature is not yet implemented.");
                 Console.WriteLine("\nPress any key to return to the main menu...");
-                Console.ReadKey(true);
-
-                // TODO: Implement actual game loading
-                // If we had the game state deserialization logic:
-                // var gameState = GameState.Load(Path.Combine(SaveDirectory, saveName + SaveExtension));
-                // _gameEngine.LoadState(gameState);
-                // StartNewGame(); // Use the same logic to start the game with the loaded state
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error loading game: {ex.Message}");
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine("\nPress any key to continue...");
                 Console.ReadKey(true);
             }
         }

@@ -83,12 +83,12 @@ namespace Tetris.Core.Models
         /// <summary>
         /// Gets the current Tetromino piece that's falling.
         /// </summary>
-        public Tetromino CurrentPiece { get; private set; }
+        public Tetromino CurrentPiece { get; private set; } = null!;
 
         /// <summary>
         /// Gets the next Tetromino piece to be played.
         /// </summary>
-        public Tetromino NextPiece { get; private set; }
+        public Tetromino NextPiece { get; private set; } = null!;
 
     /// <summary>
     /// Gets the current game level, which affects the falling speed.
@@ -800,6 +800,108 @@ namespace Tetris.Core.Models
             _gameTimer.Stop();
             _gameTimer.Elapsed -= GameTimer_Elapsed;
             _gameTimer.Dispose();
+        }
+
+        #endregion
+
+        #region Save and Load Methods
+
+        /// <summary>
+        /// Creates a GameState object from the current game state.
+        /// </summary>
+        /// <returns>A GameState object containing the current game state.</returns>
+        public GameState CreateGameState()
+        {
+            var gameState = new GameState
+            {
+                // Copy board state
+                BoardGrid = (int?[,])Board.Grid.Clone(),
+                BoardRowsCleared = Board.RowsCleared,
+                
+                // Copy tetromino states
+                CurrentPiece = CurrentPiece != null ? TetrominoState.FromTetromino(CurrentPiece) : null,
+                NextPiece = NextPiece != null ? TetrominoState.FromTetromino(NextPiece) : null,
+                
+                // Copy game statistics
+                Level = Level,
+                Difficulty = Difficulty,
+                GameMode = GameMode,
+                RemainingTimeSeconds = RemainingTimeSeconds,
+                TargetRowsToClear = TargetRowsToClear,
+                TotalRowsCleared = TotalRowsCleared,
+                Score = Score,
+                SingleRowsCleared = SingleRowsCleared,
+                DoubleRowsCleared = DoubleRowsCleared,
+                TripleRowsCleared = TripleRowsCleared,
+                TetrisCleared = TetrisCleared,
+                
+                // Copy game state flags
+                IsPaused = _isGamePaused,
+                CurrentFallDelay = _currentFallDelay,
+                IsFastDropActive = _isFastDropActive
+            };
+
+            return gameState;
+        }
+
+        /// <summary>
+        /// Loads a game state and restores the game to that state.
+        /// </summary>
+        /// <param name="gameState">The game state to load.</param>
+        /// <exception cref="ArgumentNullException">Thrown when gameState is null.</exception>
+        public void LoadGameState(GameState gameState)
+        {
+            if (gameState == null)
+                throw new ArgumentNullException(nameof(gameState));
+
+            // Stop current timers
+            _fallTimer.Stop();
+            _gameTimer.Stop();
+
+            // Restore board state
+            Board.LoadState(gameState.BoardGrid, gameState.BoardRowsCleared);        // Restore tetromino pieces
+        CurrentPiece = gameState.CurrentPiece != null ? TetrominoFactory.CreateFromState(gameState.CurrentPiece) : TetrominoFactory.CreateRandomTetromino();
+        NextPiece = gameState.NextPiece != null ? TetrominoFactory.CreateFromState(gameState.NextPiece) : TetrominoFactory.CreateRandomTetromino();
+
+            // Restore game statistics
+            Level = gameState.Level;
+            Difficulty = gameState.Difficulty;
+            GameMode = gameState.GameMode;
+            RemainingTimeSeconds = gameState.RemainingTimeSeconds;
+            TargetRowsToClear = gameState.TargetRowsToClear;
+            TotalRowsCleared = gameState.TotalRowsCleared;
+            Score = gameState.Score;
+            SingleRowsCleared = gameState.SingleRowsCleared;
+            DoubleRowsCleared = gameState.DoubleRowsCleared;
+            TripleRowsCleared = gameState.TripleRowsCleared;
+            TetrisCleared = gameState.TetrisCleared;
+
+            // Restore game state flags
+            _isGamePaused = gameState.IsPaused;
+            _currentFallDelay = gameState.CurrentFallDelay;
+            _isFastDropActive = gameState.IsFastDropActive;
+            _isGameOver = false;
+            _isGameWon = false;
+
+            // Configure timers based on restored state
+            _fallTimer.Interval = _currentFallDelay;
+            
+            // Start appropriate timers based on game mode
+            if (GameMode == GameMode.Timed && RemainingTimeSeconds > 0)
+            {
+                _gameTimer.Start();
+            }
+
+            // Start fall timer if game is not paused and not over
+            if (!_isGamePaused && !_isGameOver)
+            {
+                _fallTimer.Start();
+            }
+
+            // Notify UI of state changes
+            OnBoardUpdated();
+            OnScoreUpdated();
+            OnRemainingTimeChanged();
         }
 
         #endregion

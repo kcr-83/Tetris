@@ -184,22 +184,26 @@ namespace Tetris.Core.UI
         /// </summary>
         public void ShowPauseOverlay()
         {
-            int centerX = _boardStartX + (Board.Width * BlockCharacter.Length) / 2 - 10;
-            int centerY = _boardStartY + Board.Height / 2 - 2;
+            int centerX = _boardStartX + (Board.Width * BlockCharacter.Length) / 2 - 12;
+            int centerY = _boardStartY + Board.Height / 2 - 3;
             
             Console.ForegroundColor = ConsoleColor.Yellow;
             
             // Draw pause message box
             Console.SetCursorPosition(centerX, centerY);
-            Console.WriteLine("┌─────────────────────┐");
+            Console.WriteLine("┌─────────────────────────┐");
             Console.SetCursorPosition(centerX, centerY + 1);
-            Console.WriteLine("│       PAUSED        │");
+            Console.WriteLine("│         PAUSED          │");
             Console.SetCursorPosition(centerX, centerY + 2);
-            Console.WriteLine("│ Press P to continue │");
+            Console.WriteLine("│                         │");
             Console.SetCursorPosition(centerX, centerY + 3);
-            Console.WriteLine("│ Press ESC for menu  │");
+            Console.WriteLine("│   P: Continue           │");
             Console.SetCursorPosition(centerX, centerY + 4);
-            Console.WriteLine("└─────────────────────┘");
+            Console.WriteLine("│   S: Save Game          │");
+            Console.SetCursorPosition(centerX, centerY + 5);
+            Console.WriteLine("│   ESC: Return to Menu   │");
+            Console.SetCursorPosition(centerX, centerY + 6);
+            Console.WriteLine("└─────────────────────────┘");
         }
 
         /// <summary>
@@ -764,7 +768,7 @@ namespace Tetris.Core.UI
         {
             Console.ForegroundColor = HelpTextColor;
               // Calculate position for centered help text
-            string helpText = "←→: Move   ↑: Rotate   ↓: Fast Drop   Space: Hard Drop   P: Pause   ESC: Menu";
+            string helpText = "←→: Move   ↑: Rotate   ↓: Fast Drop   Space: Hard Drop   P: Pause   S: Save   ESC: Menu";
             int helpX = _windowWidth / 2 - helpText.Length / 2;
             int helpY = _boardStartY + Board.Height + 3;
             
