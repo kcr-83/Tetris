@@ -114,6 +114,7 @@ namespace Tetris.Core.UI
             {
                 new MenuItem("New Game", "Start a new Tetris game"),
                 new MenuItem("Load Game", "Load a previously saved game"),
+                new MenuItem("Statistics", "View game statistics and achievements"),
                 new MenuItem("Settings", "Configure game options"),
                 new MenuItem("High Scores", "View the leaderboard of high scores"),
                 new MenuItem("Help", "View game instructions and controls"),
@@ -124,6 +125,7 @@ namespace Tetris.Core.UI
             {
                 { "New Game", StartNewGame },
                 { "Load Game", ShowLoadGameMenu },
+                { "Statistics", ShowStatistics },
                 { "Settings", ShowSettingsMenu },
                 { "High Scores", ShowHighScores },
                 { "Help", ShowHelp },
@@ -402,6 +404,32 @@ namespace Tetris.Core.UI
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("\nPress any key to return to the main menu...");
             Console.ReadKey(true);
+        }
+
+        /// <summary>
+        /// Shows the statistics screen.
+        /// </summary>
+        private async void ShowStatistics()
+        {
+            try
+            {
+                var statisticsInterface = new StatisticsInterface();
+                statisticsInterface.ReturnToMenuRequested += (sender, args) => 
+                {
+                    // Return to menu is handled by the main game loop
+                };
+                
+                await statisticsInterface.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Error loading statistics: {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine("\nPress any key to return to the main menu...");
+                Console.ReadKey(true);
+            }
         }
 
         /// <summary>

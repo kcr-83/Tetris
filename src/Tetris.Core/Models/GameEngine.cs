@@ -2,6 +2,8 @@ using System;
 using System.Drawing;
 using System.Timers;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Tetris.Core.Services;
 using Timer = System.Timers.Timer;
 
 namespace Tetris.Core.Models
@@ -65,6 +67,8 @@ namespace Tetris.Core.Models
 
         private readonly Timer _fallTimer;
         private readonly Timer _gameTimer;  // Timer for Timed mode
+        private readonly IGameStatisticsService _statisticsService;
+        private DateTime _gameStartTime;
         private double _currentFallDelay;
         private bool _isFastDropActive;
         private bool _isGamePaused;
@@ -210,6 +214,8 @@ namespace Tetris.Core.Models
             Board = new Board();
             Difficulty = difficulty;
             GameMode = GameMode.Classic; // Default to classic mode
+            _statisticsService = new GameStatisticsService();
+            _gameStartTime = DateTime.Now;
             
             double initialDelay = DifficultySettings.GetInitialFallDelay(difficulty);
             _fallTimer = new Timer(initialDelay);
@@ -281,6 +287,9 @@ namespace Tetris.Core.Models
             _isGamePaused = false;
             _isFastDropActive = false;
             _isGameWon = false;
+            
+            // Reset game start time for statistics tracking
+            _gameStartTime = DateTime.Now;
             
             // Stop all timers
             _fallTimer.Stop();
@@ -557,7 +566,7 @@ namespace Tetris.Core.Models
                  /// </summary>
                  /// <param name="rowsCleared">The number of rows cleared.</param>
                  /// <param name="clearedRowIndices">The indices of the cleared rows.</param>
-        private void UpdateScore(int rowsCleared, int[] clearedRowIndices)
+        private async void UpdateScore(int rowsCleared, int[] clearedRowIndices)
         {
             // Basic scoring system:
             // 1 row = 100 points
@@ -588,6 +597,16 @@ namespace Tetris.Core.Models
             double difficultyMultiplier = DifficultySettings.GetScoreMultiplier(Difficulty);
             int scoreGained = (int)(baseScore * Level * difficultyMultiplier);
             Score += scoreGained;
+
+            // Update statistics for row clearing
+            try
+            {
+                await _statisticsService.UpdateRowClearStatisticsAsync(rowsCleared);
+            }
+            catch (Exception)
+            {
+                // Statistics update failure shouldn't affect game flow
+            }
 
             // Raise events
             OnScoreUpdated();
@@ -636,11 +655,38 @@ namespace Tetris.Core.Models
                  /// Ends the game.
                  /// </summary>
                  /// <param name="reason">The reason why the game ended.</param>
-        private void EndGame(GameOverReason reason = GameOverReason.BoardFull)
+        private async void EndGame(GameOverReason reason = GameOverReason.BoardFull)
         {
             _isGameOver = true;
             _fallTimer.Stop();
+            
+            // Update statistics before firing game over event
+            await UpdateGameStatisticsAsync(reason != GameOverReason.PlayerEnded);
+            
             OnGameOver(reason);
+        }
+
+        /// <summary>
+        /// Updates the game statistics at the end of a game.
+        /// </summary>
+        /// <param name="isCompleted">Whether the game was completed or abandoned.</param>
+        private async Task UpdateGameStatisticsAsync(bool isCompleted)
+        {
+            try
+            {
+                var gameTimeSeconds = (DateTime.Now - _gameStartTime).TotalSeconds;
+                await _statisticsService.UpdateGameStatisticsAsync(
+                    Score, 
+                    Level, 
+                    TotalRowsCleared, 
+                    gameTimeSeconds, 
+                    isCompleted);
+            }
+            catch (Exception)
+            {
+                // Statistics update failure shouldn't affect game flow
+                // Log the error in a real application
+            }
         }
 
         #endregion
