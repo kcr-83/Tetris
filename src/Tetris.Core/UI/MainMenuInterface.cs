@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -44,7 +43,7 @@ namespace Tetris.Core.UI
         /// <summary>
         /// Event raised when a new game is requested to start.
         /// </summary>
-        public event EventHandler? NewGameRequested;
+        public event EventHandler<GameModeSelectionEventArgs>? NewGameRequested;
 
         /// <summary>
         /// Event raised when the application is requested to exit.
@@ -68,7 +67,8 @@ namespace Tetris.Core.UI
         /// <summary>
         /// Gets or sets the footer text for the menu.
         /// </summary>
-        public string FooterText { get; set; } = "Use arrow keys to navigate and ENTER to select. ESC to exit.";
+        public string FooterText { get; set; } =
+            "Use arrow keys to navigate and ENTER to select. ESC to exit.";
 
         /// <summary>
         /// Gets or sets the color used for the title text.
@@ -133,7 +133,8 @@ namespace Tetris.Core.UI
         /// Initializes a new instance of the MainMenuInterface class with a specific game engine.
         /// </summary>
         /// <param name="gameEngine">The game engine to use for game operations.</param>
-        public MainMenuInterface(GameEngine gameEngine) : this()
+        public MainMenuInterface(GameEngine gameEngine)
+            : this()
         {
             _gameEngine = gameEngine ?? throw new ArgumentNullException(nameof(gameEngine));
         }
@@ -155,7 +156,7 @@ namespace Tetris.Core.UI
 
             _isActive = true;
             await AnimateMenuOpeningAsync();
-            
+
             while (_isActive)
             {
                 RenderMenu();
@@ -235,7 +236,7 @@ namespace Tetris.Core.UI
             {
                 // Center each menu item
                 int itemX = Console.WindowWidth / 2 - _menuItems[i].Text.Length / 2;
-                
+
                 Console.ForegroundColor = i == _selectedIndex ? SelectedItemColor : NormalItemColor;
                 Console.SetCursorPosition(itemX, menuStartY + i);
 
@@ -254,7 +255,10 @@ namespace Tetris.Core.UI
 
             // Draw footer text
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.SetCursorPosition(Console.WindowWidth / 2 - FooterText.Length / 2, menuStartY + _menuItems.Count + 2);
+            Console.SetCursorPosition(
+                Console.WindowWidth / 2 - FooterText.Length / 2,
+                menuStartY + _menuItems.Count + 2
+            );
             Console.WriteLine(FooterText);
 
             // Draw tetromino decoration in the background
@@ -275,15 +279,15 @@ namespace Tetris.Core.UI
                     case ConsoleKey.UpArrow:
                         _selectedIndex = Math.Max(0, _selectedIndex - 1);
                         break;
-                        
+
                     case ConsoleKey.DownArrow:
                         _selectedIndex = Math.Min(_menuItems.Count - 1, _selectedIndex + 1);
                         break;
-                        
+
                     case ConsoleKey.Enter:
                         await ExecuteSelectedMenuItemAsync();
                         break;
-                        
+
                     case ConsoleKey.Escape:
                         Close();
                         break;
@@ -297,7 +301,7 @@ namespace Tetris.Core.UI
         private async Task ExecuteSelectedMenuItemAsync()
         {
             var selectedItem = _menuItems[_selectedIndex].Text;
-            
+
             if (_menuActions.ContainsKey(selectedItem))
             {
                 await Task.Run(() => _menuActions[selectedItem].Invoke());
@@ -305,12 +309,26 @@ namespace Tetris.Core.UI
         }
 
         /// <summary>
-        /// Starts a new game.
+        /// Starts a new game by showing difficulty selection and then invoking the NewGameRequested event.
         /// </summary>
-        private void StartNewGame()
+        private async void StartNewGame()
         {
+            // Show difficulty selection dialog
+            var difficultyDialog = new DifficultySelectionDialog();
+            DifficultyLevel selectedDifficulty = await difficultyDialog.ShowAsync();
+
+            // Show game mode selection dialog
+            var gameModeDialog = new GameModeSelectionDialog(selectedDifficulty);
+            GameMode selectedGameMode = await gameModeDialog.ShowAsync();
+
+            // Close the main menu
             _isActive = false;
-            NewGameRequested?.Invoke(this, EventArgs.Empty);
+
+            // Pass the selected difficulty and game mode as event args
+            NewGameRequested?.Invoke(
+                this,
+                new GameModeSelectionEventArgs(selectedGameMode, selectedDifficulty)
+            );
         }
 
         /// <summary>
@@ -335,7 +353,8 @@ namespace Tetris.Core.UI
                     return;
                 }
 
-                var saveFiles = Directory.GetFiles(SaveDirectory, $"*{SaveExtension}")
+                var saveFiles = Directory
+                    .GetFiles(SaveDirectory, $"*{SaveExtension}")
                     .Select(Path.GetFileNameWithoutExtension)
                     .ToList();
 
@@ -359,10 +378,19 @@ namespace Tetris.Core.UI
                 }
 
                 Console.WriteLine("\nEnter the number of the save to load (or 0 to cancel):");
-                  string? input = Console.ReadLine();
-                if (int.TryParse(input, out int selection) && selection > 0 && selection <= saveFiles.Count)
+                string? input = Console.ReadLine();
+                if (
+                    !string.IsNullOrEmpty(input)
+                    && int.TryParse(input, out int selection)
+                    && selection > 0
+                    && selection <= saveFiles.Count
+                )
                 {
-                    LoadGame(saveFiles[selection - 1]);
+                    string saveName = saveFiles[selection - 1];
+                    if (!string.IsNullOrEmpty(saveName))
+                    {
+                        LoadGame(saveName);
+                    }
                 }
             }
             catch (Exception ex)
@@ -379,8 +407,14 @@ namespace Tetris.Core.UI
         /// Loads a saved game.
         /// </summary>
         /// <param name="saveName">The name of the save file to load.</param>
+        /// <exception cref="ArgumentNullException">Thrown when saveName is null.</exception>
         private void LoadGame(string saveName)
         {
+            if (saveName == null)
+            {
+                throw new ArgumentNullException(nameof(saveName));
+            }
+
             try
             {
                 // In a real implementation, this would load the game state from a file
@@ -388,7 +422,7 @@ namespace Tetris.Core.UI
                 Console.WriteLine("This feature is not yet implemented.");
                 Console.WriteLine("\nPress any key to return to the main menu...");
                 Console.ReadKey(true);
-                
+
                 // TODO: Implement actual game loading
                 // If we had the game state deserialization logic:
                 // var gameState = GameState.Load(Path.Combine(SaveDirectory, saveName + SaveExtension));
@@ -414,20 +448,20 @@ namespace Tetris.Core.UI
             Console.ForegroundColor = TitleColor;
             Console.WriteLine("===== SETTINGS =====");
             Console.WriteLine();
-            
+
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("Game Settings:");
             Console.WriteLine();
-            
+
             Console.WriteLine("1. Music: ON");
             Console.WriteLine("2. Sound Effects: ON");
             Console.WriteLine("3. Control Scheme: Standard");
             Console.WriteLine("4. Difficulty: Normal");
             Console.WriteLine("5. Theme: Classic");
             Console.WriteLine();
-            
+
             Console.WriteLine("Select an option to change (or 0 to return):");
-            
+
             var key = Console.ReadKey(true);
             // In a real implementation, this would modify actual game settings
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -446,7 +480,7 @@ namespace Tetris.Core.UI
             Console.ForegroundColor = TitleColor;
             Console.WriteLine("===== HIGH SCORES =====");
             Console.WriteLine();
-            
+
             // In a real implementation, this would load high scores from a file
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("1. ABC .......... 20000");
@@ -454,7 +488,7 @@ namespace Tetris.Core.UI
             Console.WriteLine("3. GHI .......... 10000");
             Console.WriteLine("4. JKL .......... 5000");
             Console.WriteLine("5. MNO .......... 2500");
-            
+
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("\nPress any key to return to the main menu...");
             Console.ReadKey(true);
@@ -469,7 +503,7 @@ namespace Tetris.Core.UI
             Console.ForegroundColor = TitleColor;
             Console.WriteLine("===== HELP =====");
             Console.WriteLine();
-            
+
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("Game Controls:");
             Console.WriteLine();
@@ -480,13 +514,13 @@ namespace Tetris.Core.UI
             Console.WriteLine("P - Pause game");
             Console.WriteLine("Esc - Exit to main menu");
             Console.WriteLine();
-            
+
             Console.WriteLine("Game Rules:");
             Console.WriteLine("1. Complete lines by filling all horizontal blocks.");
             Console.WriteLine("2. Completed lines disappear and award points.");
             Console.WriteLine("3. Game speeds up as your level increases.");
             Console.WriteLine("4. Game ends when blocks reach the top of the board.");
-            
+
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("\nPress any key to return to the main menu...");
             Console.ReadKey(true);
@@ -500,7 +534,7 @@ namespace Tetris.Core.UI
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("Are you sure you want to exit? (Y/N)");
-            
+
             var key = Console.ReadKey(true);
             if (key.Key == ConsoleKey.Y)
             {
@@ -516,18 +550,22 @@ namespace Tetris.Core.UI
         {
             // Draw some tetris pieces in the background with a faded color
             Console.ForegroundColor = ConsoleColor.DarkCyan;
-            
+
             // Draw an I piece
             DrawPieceAtPosition(2, 2, new[] { "####" });
-            
+
             // Draw a T piece
             DrawPieceAtPosition(Console.WindowWidth - 8, 3, new[] { " # ", "###" });
-            
+
             // Draw an L piece
             DrawPieceAtPosition(5, Console.WindowHeight - 5, new[] { "#  ", "###" });
-            
+
             // Draw a Z piece
-            DrawPieceAtPosition(Console.WindowWidth - 10, Console.WindowHeight - 4, new[] { "## ", " ##" });
+            DrawPieceAtPosition(
+                Console.WindowWidth - 10,
+                Console.WindowHeight - 4,
+                new[] { "## ", " ##" }
+            );
         }
 
         /// <summary>
@@ -545,8 +583,12 @@ namespace Tetris.Core.UI
                     if (pattern[row][col] == '#')
                     {
                         // Make sure we're not drawing outside the console window
-                        if (x + col >= 0 && x + col < Console.WindowWidth &&
-                            y + row >= 0 && y + row < Console.WindowHeight)
+                        if (
+                            x + col >= 0
+                            && x + col < Console.WindowWidth
+                            && y + row >= 0
+                            && y + row < Console.WindowHeight
+                        )
                         {
                             Console.SetCursorPosition(x + col, y + row);
                             Console.Write("█");
@@ -563,13 +605,13 @@ namespace Tetris.Core.UI
         {
             // First clear the screen
             Console.Clear();
-            
+
             // Animate the title
             int titleX = Console.WindowWidth / 2 - Title.Length / 2;
             int titleY = Console.WindowHeight / 4;
-            
+
             Console.ForegroundColor = TitleColor;
-            
+
             // Fade in effect
             for (int i = 0; i < Title.Length; i++)
             {
@@ -577,34 +619,34 @@ namespace Tetris.Core.UI
                 Console.Write(Title[i]);
                 await Task.Delay(AnimationSpeed);
             }
-            
+
             // Animate subtitle
             Console.ForegroundColor = ConsoleColor.White;
             int subtitleX = Console.WindowWidth / 2 - Subtitle.Length / 2;
-            
+
             for (int i = 0; i < Subtitle.Length; i++)
             {
                 Console.SetCursorPosition(subtitleX + i, titleY + 1);
                 Console.Write(Subtitle[i]);
                 await Task.Delay(AnimationSpeed / 2);
             }
-            
+
             // Animate menu items appearing
             int menuStartY = titleY + 3;
-            
+
             for (int i = 0; i < _menuItems.Count; i++)
             {
                 Console.ForegroundColor = i == _selectedIndex ? SelectedItemColor : NormalItemColor;
                 int itemX = Console.WindowWidth / 2 - _menuItems[i].Text.Length / 2 - 2; // Account for selection indicator
-                
+
                 Console.SetCursorPosition(itemX, menuStartY + i);
                 Console.Write(i == _selectedIndex ? "> " : "  ");
                 Console.Write(_menuItems[i].Text);
-                
+
                 await Task.Delay(AnimationSpeed * 3);
             }
         }
-        
+
         #endregion
     }
 
@@ -617,12 +659,12 @@ namespace Tetris.Core.UI
         /// Gets the display text of the menu item.
         /// </summary>
         public string Text { get; }
-        
+
         /// <summary>
         /// Gets the description of the menu item.
         /// </summary>
         public string Description { get; }
-        
+
         /// <summary>
         /// Initializes a new instance of the MenuItem class.
         /// </summary>

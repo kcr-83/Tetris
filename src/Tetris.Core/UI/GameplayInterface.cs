@@ -314,6 +314,159 @@ namespace Tetris.Core.UI
             Console.WriteLine("└───────────────────────────┘");
         }
 
+        /// <summary>
+        /// Shows a win overlay when the player wins a challenge mode game.
+        /// </summary>
+        public void ShowWinOverlay()
+        {
+            // Save current console colors
+            ConsoleColor originalForeground = Console.ForegroundColor;
+            ConsoleColor originalBackground = Console.BackgroundColor;
+
+            // Calculate center position for message
+            int centerX = Console.WindowWidth / 2 - 18;
+            int centerY = Console.WindowHeight / 2 - 4;
+
+            // Set colors for win message
+            Console.ForegroundColor = ConsoleColor.Green;
+
+            // Draw win message box
+            Console.SetCursorPosition(centerX, centerY);
+            Console.WriteLine("╔════════════════════════════════════╗");
+            Console.SetCursorPosition(centerX, centerY + 1);
+            Console.WriteLine("║           CONGRATULATIONS          ║");
+            Console.SetCursorPosition(centerX, centerY + 2);
+            Console.WriteLine("║                                    ║");
+            Console.SetCursorPosition(centerX, centerY + 3);
+            Console.WriteLine("║        CHALLENGE COMPLETED!        ║");
+            Console.SetCursorPosition(centerX, centerY + 4);
+            Console.WriteLine("║                                    ║");
+            Console.SetCursorPosition(centerX, centerY + 5);
+            Console.WriteLine("║     Press any key to continue      ║");
+            Console.SetCursorPosition(centerX, centerY + 6);
+            Console.WriteLine("╚════════════════════════════════════╝");
+
+            // Wait for key press
+            Console.ReadKey(true);
+
+            // Restore console colors
+            Console.ForegroundColor = originalForeground;
+            Console.BackgroundColor = originalBackground;
+        }
+
+        /// <summary>
+        /// Shows a celebration animation when the player wins a challenge.
+        /// </summary>
+        /// <returns>A task that completes when the animation finishes.</returns>
+        public async Task ShowWinAnimationAsync()
+        {
+            // Store original colors
+            ConsoleColor originalForeground = Console.ForegroundColor;
+            ConsoleColor originalBackground = Console.BackgroundColor;
+
+            // Animation frames for fireworks
+            string[] fireworkFrames = new[]
+            {
+                "    .    ",
+                "   \\|/   ",
+                " -- * -- ",
+                "   /|\\   "
+            };
+
+            // Positions for multiple fireworks
+            (int x, int y)[] positions = new[]
+            {
+                (_boardStartX + 5, _boardStartY + 5),
+                (_boardStartX + 15, _boardStartY + 8),
+                (_boardStartX + 10, _boardStartY + 12),
+                (_sidePanelStartX + 5, _boardStartY + 10),
+                (_sidePanelStartX + 10, _boardStartY + 15)
+            };
+
+            // Array of colors for the fireworks
+            ConsoleColor[] colors = new[]
+            {
+                ConsoleColor.Red,
+                ConsoleColor.Yellow,
+                ConsoleColor.Green,
+                ConsoleColor.Cyan,
+                ConsoleColor.Magenta
+            };
+
+            // Run animation
+            for (int frame = 0; frame < 15; frame++)
+            {
+                for (int i = 0; i < positions.Length; i++)
+                {
+                    // Skip some positions for variety
+                    if (frame % 3 == i % 3) continue;
+
+                    var (x, y) = positions[i];
+                    int fireworkFrame = (frame + i) % fireworkFrames.Length;
+                    
+                    // Change colors
+                    Console.ForegroundColor = colors[(frame + i) % colors.Length];
+                    
+                    // Draw firework frame if it's within console bounds
+                    if (x >= 0 && x + fireworkFrames[fireworkFrame].Length < Console.WindowWidth &&
+                        y >= 0 && y < Console.WindowHeight)
+                    {
+                        Console.SetCursorPosition(x, y);
+                        Console.Write(fireworkFrames[fireworkFrame]);
+                    }
+                }
+                
+                await Task.Delay(150); // Animation speed
+            }
+
+            // Restore colors
+            Console.ForegroundColor = originalForeground;
+            Console.BackgroundColor = originalBackground;
+
+            // Redraw the screen to clear the animation
+            Render();
+        }
+
+        /// <summary>
+        /// Updates the timer display for timed mode.
+        /// </summary>
+        /// <param name="remainingSeconds">The number of remaining seconds.</param>
+        public void UpdateTimerDisplay(int remainingSeconds)
+        {
+            if (!_initialized || _isWindowTooSmall)
+                return;
+
+            // Format time as minutes:seconds
+            int minutes = remainingSeconds / 60;
+            int seconds = remainingSeconds % 60;
+            string timeDisplay = $"{minutes:00}:{seconds:00}";
+
+            // Save original colors
+            ConsoleColor originalForeground = Console.ForegroundColor;
+
+            // Set color based on remaining time
+            if (remainingSeconds <= 10)
+                Console.ForegroundColor = ConsoleColor.Red;
+            else if (remainingSeconds <= 30)
+                Console.ForegroundColor = ConsoleColor.Yellow;
+            else
+                Console.ForegroundColor = ConsoleColor.Green;
+
+            // Calculate position for timer display
+            int timerX = _sidePanelStartX;
+            int timerY = _boardStartY + 10;
+
+            // Ensure we don't write outside the console buffer
+            if (timerX < Console.WindowWidth - 14 && timerY < Console.WindowHeight)
+            {
+                Console.SetCursorPosition(timerX, timerY);
+                Console.Write("Time: " + timeDisplay + "  ");
+            }
+
+            // Restore original colors
+            Console.ForegroundColor = originalForeground;
+        }
+
         #endregion
 
         #region Private Methods
@@ -456,8 +609,7 @@ namespace Tetris.Core.UI
             Console.SetCursorPosition(indentX, currentY);
             Console.WriteLine($"Score: {_gameEngine.Score}");
             currentY += 1;
-            
-            Console.SetCursorPosition(indentX, currentY);
+              Console.SetCursorPosition(indentX, currentY);
             Console.WriteLine($"Level: {_gameEngine.Level}");
             currentY += 1;
             
@@ -467,7 +619,41 @@ namespace Tetris.Core.UI
             
             Console.SetCursorPosition(indentX, currentY);
             Console.WriteLine($"Speed: {GetSpeedText()}");
-            currentY += 2;
+            currentY += 1;
+            
+            Console.SetCursorPosition(indentX, currentY);
+            Console.WriteLine($"Difficulty: {DifficultySettings.GetDisplayName(_gameEngine.Difficulty)}");
+            currentY += 1;
+            
+            // Game Mode Display
+            Console.SetCursorPosition(indentX, currentY);
+            Console.WriteLine($"Mode: {_gameEngine.GameMode}");
+            currentY += 1;
+            
+            // Game mode specific information
+            switch (_gameEngine.GameMode)
+            {
+                case GameMode.Timed:
+                    int minutes = _gameEngine.RemainingTimeSeconds / 60;
+                    int seconds = _gameEngine.RemainingTimeSeconds % 60;
+                    Console.SetCursorPosition(indentX, currentY);
+                    Console.WriteLine($"Time: {minutes:00}:{seconds:00}");
+                    currentY += 1;
+                    break;
+                    
+                case GameMode.Challenge:
+                    int rowsLeft = _gameEngine.TargetRowsToClear - _gameEngine.TotalRowsCleared;
+                    if (rowsLeft < 0) rowsLeft = 0;
+                    Console.SetCursorPosition(indentX, currentY);
+                    Console.WriteLine($"Goal: {_gameEngine.TotalRowsCleared}/{_gameEngine.TargetRowsToClear} rows");
+                    currentY += 1;
+                    Console.SetCursorPosition(indentX, currentY);
+                    Console.WriteLine($"Left: {rowsLeft} rows");
+                    currentY += 1;
+                    break;
+            }
+            
+            currentY += 1;
             
             // Line Statistics
             Console.SetCursorPosition(_sidePanelStartX, currentY);

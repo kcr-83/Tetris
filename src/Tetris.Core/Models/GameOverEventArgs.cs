@@ -74,6 +74,16 @@ namespace Tetris.Core.Models
         /// <summary>
         /// The game was manually ended by the player.
         /// </summary>
-        PlayerEnded
+        PlayerEnded,
+        
+        /// <summary>
+        /// The time ran out in Timed mode.
+        /// </summary>
+        TimeUp,
+        
+        /// <summary>
+        /// The goal was reached in Challenge mode.
+        /// </summary>
+        GoalReached
     }
 }

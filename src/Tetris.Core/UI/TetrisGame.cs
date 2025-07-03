@@ -26,7 +26,7 @@ namespace Tetris.Core.UI
 
         /// <summary>
         /// Initializes a new instance of the TetrisGame class.
-        /// </summary>        
+        /// </summary>
         public TetrisGame()
         {
             _gameEngine = new GameEngine();
@@ -44,6 +44,8 @@ namespace Tetris.Core.UI
             _gameEngine.GameOver += OnGameOver;
             _gameEngine.LevelIncreased += OnLevelIncreased;
             _gameEngine.RowsCleared += OnRowsCleared;
+            _gameEngine.GameWon += OnGameWon;
+            _gameEngine.RemainingTimeChanged += OnRemainingTimeChanged;
         }
 
         #endregion
@@ -113,7 +115,10 @@ namespace Tetris.Core.UI
             while (_isGameActive && !_isExiting)
             {
                 // Check for window resize
-                if (Console.WindowWidth != lastWindowWidth || Console.WindowHeight != lastWindowHeight)
+                if (
+                    Console.WindowWidth != lastWindowWidth
+                    || Console.WindowHeight != lastWindowHeight
+                )
                 {
                     lastWindowWidth = Console.WindowWidth;
                     lastWindowHeight = Console.WindowHeight;
@@ -154,9 +159,11 @@ namespace Tetris.Core.UI
                 int frameDelay = Math.Max(10, 50 - (_gameEngine.Level * 2));
                 await Task.Delay(frameDelay);
             }
-        }        /// <summary>
-                 /// Processes user input during gameplay.
-                 /// </summary>
+        }
+
+        /// <summary>
+        /// Processes user input during gameplay.
+        /// </summary>
         private void ProcessGameInput()
         {
             var key = Console.ReadKey(true);
@@ -213,9 +220,11 @@ namespace Tetris.Core.UI
             {
                 _gameEngine.DeactivateFastDrop();
             }
-        }/// <summary>
-         /// Displays the current game state using the GameplayInterface.
-         /// </summary>
+        }
+
+        /// <summary>
+        /// Displays the current game state using the GameplayInterface.
+        /// </summary>
         private void DisplayGame()
         {
             // Use the GameplayInterface to render the game
@@ -226,7 +235,9 @@ namespace Tetris.Core.UI
             {
                 _gameplayInterface.ShowPauseOverlay();
             }
-        }        // The drawing methods are now handled by the GameplayInterface class        /// <summary>
+        } 
+        // The drawing methods are now handled by the GameplayInterface class        /// <summary>
+
         /// Toggles the pause state of the game.
         /// </summary>
         private void TogglePause()
@@ -243,7 +254,9 @@ namespace Tetris.Core.UI
                 // Refresh the screen without pause overlay
                 DisplayGame();
             }
-        }// Pause overlay is now handled by the GameplayInterface class        /// <summary>
+        }
+
+        // Pause overlay is now handled by the GameplayInterface class        /// <summary>
         /// Prompts the user if they want to exit to the main menu.
         /// </summary>
         private void PromptExitToMenu()
@@ -281,19 +294,26 @@ namespace Tetris.Core.UI
                     DisplayGame(); // Refresh the screen
                 }
             }
-        }        // Tetromino coloring is now handled by the GameplayInterface class
-
+        } // Tetromino coloring is now handled by the GameplayInterface class
         #endregion
 
         #region Event Handlers
-
         /// <summary>
-        /// Handles the NewGameRequested event from the main menu.
+        /// Handles the NewGameRequested event from the main menu or game over display.
         /// </summary>
         private void OnNewGameRequested(object? sender, EventArgs e)
         {
-            _isGameActive = true;
-            _gameEngine.StartNewGame();
+            if (e is GameModeSelectionEventArgs gameModeArgs)
+            {
+                _isGameActive = true;
+                _gameEngine.StartNewGame(gameModeArgs.SelectedDifficulty, gameModeArgs.SelectedGameMode);
+            }
+            else
+            {
+                // Fallback to Medium difficulty and Classic mode if event args are not of expected type
+                _isGameActive = true;
+                _gameEngine.StartNewGame(DifficultyLevel.Medium, GameMode.Classic);
+            }
         }
 
         /// <summary>
@@ -313,9 +333,11 @@ namespace Tetris.Core.UI
 
             // Let the game over display show its message
             // Control will return to the main menu when the player presses a key
-        }        /// <summary>
-                 /// Handles the ReturnToMenuRequested event from the game over display.
-                 /// </summary>
+        }
+
+        /// <summary>
+        /// Handles the ReturnToMenuRequested event from the game over display.
+        /// </summary>
         private void OnReturnToMenuRequested(object? sender, EventArgs e)
         {
             _isGameActive = false;
@@ -339,7 +361,40 @@ namespace Tetris.Core.UI
         {
             if (_isGameActive && !_isPaused)
             {
-                await _gameplayInterface.ShowRowsClearedAnimationAsync(e.RowsCleared, e.ScoreGained);
+                await _gameplayInterface.ShowRowsClearedAnimationAsync(
+                    e.RowsCleared,
+                    e.ScoreGained
+                );
+            }
+        }
+
+        /// <summary>
+        /// Handles the GameWon event from the game engine.
+        /// </summary>
+        private async void OnGameWon(object? sender, EventArgs e)
+        {
+            // Game is active until animations complete
+            
+            // Show win animation first
+            await _gameplayInterface.ShowWinAnimationAsync();
+            
+            // Then show win message
+            _gameplayInterface.ShowWinOverlay();
+            
+            // Mark game as no longer active
+            _isGameActive = false;
+            
+            // Game will transition to game over display with victory message
+        }
+
+        /// <summary>
+        /// Handles the RemainingTimeChanged event from the game engine.
+        /// </summary>
+        private void OnRemainingTimeChanged(object? sender, EventArgs e)
+        {
+            if (_isGameActive && !_isPaused)
+            {
+                _gameplayInterface.UpdateTimerDisplay(_gameEngine.RemainingTimeSeconds);
             }
         }
 
@@ -376,7 +431,7 @@ namespace Tetris.Core.UI
             const int targetFrameTime = 1000 / targetFrameRate;
             DateTime lastFrameTime = DateTime.Now;
             DateTime lastGameUpdate = DateTime.Now;
-            int gameUpdateInterval = 50;  // Start with 20 updates per second
+            int gameUpdateInterval = 50; // Start with 20 updates per second
 
             // Game loop continues until game is over or player exits
             while (_isGameActive && !_isExiting)

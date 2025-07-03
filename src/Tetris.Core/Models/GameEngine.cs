@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Timers;
+using System.Collections.Generic;
 using Timer = System.Timers.Timer;
 
 namespace Tetris.Core.Models
@@ -10,22 +11,23 @@ namespace Tetris.Core.Models
     /// </summary>
     public class GameEngine : IDisposable
     {
-        #region Constants
+        #region Constants        /// <summary>
+        /// The default initial delay between automatic block movements in milliseconds.
+        /// This is overridden by difficulty settings.
+        /// </summary>
+        private const double DefaultInitialFallDelay = 1000;
 
         /// <summary>
-        /// The initial delay between automatic block movements in milliseconds.
+        /// The default minimum delay between automatic block movements in milliseconds.
+        /// This is overridden by difficulty settings.
         /// </summary>
-        private const double InitialFallDelay = 1000;
+        private const double DefaultMinFallDelay = 100;
 
         /// <summary>
-        /// The minimum delay between automatic block movements in milliseconds.
+        /// The default amount of delay reduction per level in milliseconds.
+        /// This is overridden by difficulty settings.
         /// </summary>
-        private const double MinFallDelay = 100;
-
-        /// <summary>
-        /// The amount of delay reduction per level in milliseconds.
-        /// </summary>
-        private const double DelayReductionPerLevel = 50;
+        private const double DefaultDelayReductionPerLevel = 50;
 
         /// <summary>
         /// The number of rows that need to be cleared to advance to the next level.
@@ -62,10 +64,12 @@ namespace Tetris.Core.Models
         #region Fields
 
         private readonly Timer _fallTimer;
+        private readonly Timer _gameTimer;  // Timer for Timed mode
         private double _currentFallDelay;
         private bool _isFastDropActive;
         private bool _isGamePaused;
         private bool _isGameOver;
+        private bool _isGameWon;
 
         #endregion
 
@@ -86,15 +90,40 @@ namespace Tetris.Core.Models
         /// </summary>
         public Tetromino NextPiece { get; private set; }
 
-        /// <summary>
-        /// Gets the current game level, which affects the falling speed.
-        /// </summary>
-        public int Level { get; private set; }
+    /// <summary>
+    /// Gets the current game level, which affects the falling speed.
+    /// </summary>
+    public int Level { get; private set; }
+    
+    /// <summary>
+    /// Gets the difficulty level of the game.
+    /// </summary>
+    public DifficultyLevel Difficulty { get; private set; }
+    
+    /// <summary>
+    /// Gets the current game mode.
+    /// </summary>
+    public GameMode GameMode { get; private set; }
+    
+    /// <summary>
+    /// Gets the remaining time in seconds for Timed mode.
+    /// </summary>
+    public int RemainingTimeSeconds { get; private set; }
+    
+    /// <summary>
+    /// Gets the target rows to clear for Challenge mode.
+    /// </summary>
+    public int TargetRowsToClear { get; private set; }
+    
+    /// <summary>
+    /// Gets the total rows cleared in the current game.
+    /// </summary>
+    public int TotalRowsCleared { get; private set; }
 
-        /// <summary>
-        /// Gets the current game score.
-        /// </summary>
-        public int Score { get; private set; }
+    /// <summary>
+    /// Gets the current game score.
+    /// </summary>
+    public int Score { get; private set; }
 
         /// <summary>
         /// Gets the number of single row clears achieved.
@@ -139,8 +168,8 @@ namespace Tetris.Core.Models
         /// Occurs when the score changes.
         /// </summary>
         public event EventHandler? ScoreUpdated;        /// <summary>
-                                                        /// Occurs when the level increases.
-                                                        /// </summary>
+        /// Occurs when the level increases.
+        /// </summary>
         public event EventHandler<LevelIncreasedEventArgs>? LevelIncreased;
 
         /// <summary>
@@ -152,28 +181,57 @@ namespace Tetris.Core.Models
         /// Occurs when the game ends, providing game statistics.
         /// </summary>
         public event EventHandler<GameOverEventArgs>? GameOver;
+        
+        /// <summary>
+        /// Occurs when the remaining time changes in Timed mode.
+        /// </summary>
+        public event EventHandler? RemainingTimeChanged;
+        
+        /// <summary>
+        /// Occurs when the game is won in Challenge mode.
+        /// </summary>
+        public event EventHandler? GameWon;
 
         #endregion
 
-        #region Constructor
-
-        /// <summary>
-        /// Initializes a new instance of the GameEngine class.
+        #region Constructor        /// <summary>
+        /// Initializes a new instance of the GameEngine class with default medium difficulty.
         /// </summary>
-        public GameEngine()
+        public GameEngine() : this(DifficultyLevel.Medium)
+        {
+        }
+        
+        /// <summary>
+        /// Initializes a new instance of the GameEngine class with the specified difficulty level.
+        /// </summary>
+        /// <param name="difficulty">The difficulty level for the game.</param>
+        public GameEngine(DifficultyLevel difficulty)
         {
             Board = new Board();
-            _fallTimer = new Timer(InitialFallDelay);
+            Difficulty = difficulty;
+            GameMode = GameMode.Classic; // Default to classic mode
+            
+            double initialDelay = DifficultySettings.GetInitialFallDelay(difficulty);
+            _fallTimer = new Timer(initialDelay);
             _fallTimer.Elapsed += FallTimer_Elapsed;
-            _currentFallDelay = InitialFallDelay; Level = 1;
+            
+            _gameTimer = new Timer(1000); // 1 second interval for game timer
+            _gameTimer.Elapsed += GameTimer_Elapsed;
+            
+            _currentFallDelay = initialDelay;
+            Level = 1;
             Score = 0;
             SingleRowsCleared = 0;
             DoubleRowsCleared = 0;
             TripleRowsCleared = 0;
             TetrisCleared = 0;
+            TotalRowsCleared = 0;
+            RemainingTimeSeconds = 0;
+            TargetRowsToClear = 0;
             _isFastDropActive = false;
             _isGamePaused = false;
             _isGameOver = false;
+            _isGameWon = false;
 
             // Initialize with random pieces
             CurrentPiece = TetrominoFactory.CreateRandomTetromino();
@@ -182,13 +240,35 @@ namespace Tetris.Core.Models
 
         #endregion
 
-        #region Game Control Methods
-
-        /// <summary>
-        /// Starts a new game.
+        #region Game Control Methods        /// <summary>
+        /// Starts a new game with the current difficulty and game mode.
         /// </summary>
         public void StartNewGame()
-        {            // Reset game state
+        {
+            StartNewGame(Difficulty, GameMode);
+        }
+        
+        /// <summary>
+        /// Starts a new game with a specific difficulty.
+        /// </summary>
+        /// <param name="difficulty">The difficulty level for the game.</param>
+        public void StartNewGame(DifficultyLevel difficulty)
+        {
+            StartNewGame(difficulty, GameMode);
+        }
+
+        /// <summary>
+        /// Starts a new game with a specific difficulty and game mode.
+        /// </summary>
+        /// <param name="difficulty">The difficulty level for the game.</param>
+        /// <param name="gameMode">The game mode to use.</param>
+        public void StartNewGame(DifficultyLevel difficulty, GameMode gameMode)
+        {
+            // Update difficulty level and game mode
+            Difficulty = difficulty;
+            GameMode = gameMode;
+            
+            // Reset game state
             Board.Clear();
             Level = 1;
             Score = 0;
@@ -196,15 +276,43 @@ namespace Tetris.Core.Models
             DoubleRowsCleared = 0;
             TripleRowsCleared = 0;
             TetrisCleared = 0;
-            _currentFallDelay = InitialFallDelay;
-            _fallTimer.Interval = _currentFallDelay;
+            TotalRowsCleared = 0;
             _isGameOver = false;
             _isGamePaused = false;
-            _isFastDropActive = false; // Create new pieces
+            _isFastDropActive = false;
+            _isGameWon = false;
+            
+            // Stop all timers
+            _fallTimer.Stop();
+            _gameTimer.Stop();
+            
+            // Set initial fall delay based on difficulty
+            _currentFallDelay = DifficultySettings.GetInitialFallDelay(difficulty);
+            _fallTimer.Interval = _currentFallDelay;
+            
+            // Configure game mode specific settings
+            switch (gameMode)
+            {
+                case GameMode.Timed:
+                    RemainingTimeSeconds = GameModeSettings.GetTimedModeSeconds(difficulty);
+                    _gameTimer.Start();
+                    break;
+                    
+                case GameMode.Challenge:
+                    TargetRowsToClear = GameModeSettings.GetChallengeRowsTarget(difficulty);
+                    break;
+                    
+                case GameMode.Classic:
+                default:
+                    // Nothing special for classic mode
+                    break;
+            }
+            
+            // Create new pieces
             CurrentPiece = TetrominoFactory.CreateRandomTetromino();
             NextPiece = TetrominoFactory.CreateRandomTetromino();
 
-            // Start the timer
+            // Start the fall timer
             _fallTimer.Start();
 
             // Notify listeners
@@ -476,9 +584,9 @@ namespace Tetris.Core.Models
                     baseScore = TetrisScore;
                     TetrisCleared++;
                     break;
-            }
-
-            int scoreGained = baseScore * Level;
+            }            // Apply difficulty multiplier to the base score
+            double difficultyMultiplier = DifficultySettings.GetScoreMultiplier(Difficulty);
+            int scoreGained = (int)(baseScore * Level * difficultyMultiplier);
             Score += scoreGained;
 
             // Raise events
@@ -501,16 +609,20 @@ namespace Tetris.Core.Models
                 UpdateFallSpeed();
                 OnLevelIncreased(oldLevel, newLevel);
             }
-        }
-
-        /// <summary>
-        /// Updates the falling speed based on the current level.
+        }        /// <summary>
+        /// Updates the falling speed based on the current level and difficulty.
         /// </summary>
         private void UpdateFallSpeed()
-        { // Calculate new fall delay based on level
+        {
+            // Get difficulty-specific values
+            double initialDelay = DifficultySettings.GetInitialFallDelay(Difficulty);
+            double delayReduction = DifficultySettings.GetDelayReductionPerLevel(Difficulty);
+            double minDelay = DifficultySettings.GetMinimumFallDelay(Difficulty);
+            
+            // Calculate new fall delay based on level and difficulty
             _currentFallDelay = Math.Max(
-                InitialFallDelay - (Level - 1) * DelayReductionPerLevel,
-                MinFallDelay
+                initialDelay - (Level - 1) * delayReduction,
+                minDelay
             );
 
             // Update timer if fast drop is not active
@@ -520,7 +632,7 @@ namespace Tetris.Core.Models
                 _fallTimer.Interval = _currentFallDelay;
                 _fallTimer.Start();
             }
-        }        /// <summary>
+        }/// <summary>
                  /// Ends the game.
                  /// </summary>
                  /// <param name="reason">The reason why the game ended.</param>
@@ -596,7 +708,16 @@ namespace Tetris.Core.Models
         /// <param name="clearedRowIndices">The indices of the rows that were cleared.</param>
         protected virtual void OnRowsCleared(int rowsCleared, int scoreGained, int[] clearedRowIndices)
         {
+            TotalRowsCleared += rowsCleared;
             RowsCleared?.Invoke(this, new RowsClearedEventArgs(rowsCleared, scoreGained, clearedRowIndices));
+            
+            // Check if Challenge mode goal has been reached
+            if (GameMode == GameMode.Challenge && TotalRowsCleared >= TargetRowsToClear && !_isGameOver && !_isGameWon)
+            {
+                _isGameWon = true;
+                _fallTimer.Stop();
+                OnGameWon();
+            }
         }/// <summary>
          /// Raises the LevelIncreased event.
          /// </summary>
@@ -621,6 +742,47 @@ namespace Tetris.Core.Models
 
             GameOver?.Invoke(this, eventArgs);
         }
+        
+        /// <summary>
+        /// Raises the RemainingTimeChanged event.
+        /// </summary>
+        protected virtual void OnRemainingTimeChanged()
+        {
+            RemainingTimeChanged?.Invoke(this, EventArgs.Empty);
+        }
+        
+        /// <summary>
+        /// Raises the GameWon event.
+        /// </summary>
+        protected virtual void OnGameWon()
+        {
+            GameWon?.Invoke(this, EventArgs.Empty);
+        }
+        
+        /// <summary>
+        /// Handles the game timer tick for timed mode.
+        /// </summary>
+        private void GameTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            if (_isGamePaused || _isGameOver || _isGameWon)
+            {
+                return;
+            }
+
+            if (GameMode == GameMode.Timed)
+            {
+                RemainingTimeSeconds--;
+                OnRemainingTimeChanged();
+                
+                if (RemainingTimeSeconds <= 0)
+                {
+                    _fallTimer.Stop();
+                    _gameTimer.Stop();
+                    _isGameOver = true;
+                    OnGameOver(GameOverReason.TimeUp);
+                }
+            }
+        }
 
         #endregion
 
@@ -634,6 +796,10 @@ namespace Tetris.Core.Models
             _fallTimer.Stop();
             _fallTimer.Elapsed -= FallTimer_Elapsed;
             _fallTimer.Dispose();
+            
+            _gameTimer.Stop();
+            _gameTimer.Elapsed -= GameTimer_Elapsed;
+            _gameTimer.Dispose();
         }
 
         #endregion

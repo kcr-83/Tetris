@@ -24,11 +24,10 @@ namespace Tetris.Core.UI
         /// Event raised when the user wants to return to the main menu.
         /// </summary>
         public event EventHandler? ReturnToMenuRequested;
-        
-        /// <summary>
+          /// <summary>
         /// Event raised when the user wants to start a new game.
         /// </summary>
-        public event EventHandler? NewGameRequested;
+        public event EventHandler<GameModeSelectionEventArgs>? NewGameRequested;
         
         #endregion
         
@@ -201,11 +200,20 @@ namespace Tetris.Core.UI
                 if (Console.KeyAvailable)
                 {
                     var key = Console.ReadKey(true);
-                    
-                    if (key.Key == ConsoleKey.Enter)
+                      if (key.Key == ConsoleKey.Enter)
                     {
                         _isShowing = false;
-                        NewGameRequested?.Invoke(this, EventArgs.Empty);
+                        
+                        // Show difficulty selection dialog
+                        var difficultyDialog = new DifficultySelectionDialog();
+                        var difficulty = await difficultyDialog.ShowAsync();
+                        
+                        // Show game mode selection dialog
+                        var gameModeDialog = new GameModeSelectionDialog(difficulty);
+                        var gameMode = await gameModeDialog.ShowAsync();
+                        
+                        // Pass the selected difficulty and game mode as event args
+                        NewGameRequested?.Invoke(this, new GameModeSelectionEventArgs(gameMode, difficulty));
                     }
                     else if (key.Key == ConsoleKey.Escape)
                     {
