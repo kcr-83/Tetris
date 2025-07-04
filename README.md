@@ -43,27 +43,43 @@ This project is a complete implementation of the classic Tetris game with modern
 
 ### Key Features
 
-- Standard 10x20 Tetris board gameplay
-- All 7 classic Tetromino blocks with proper rotation logic
-- Intuitive block controls for movement, rotation, and dropping
-- Block drop preview visualization (ghost piece)
-- Comprehensive gameplay interface with:
-  - Current game board display
-  - Score, level, and cleared rows tracking
-  - Next piece preview
-  - Difficulty level indicator
-  - Line clear statistics
+- **Core Gameplay**
+  - Standard 10x20 Tetris board gameplay
+  - All 7 classic Tetromino blocks with proper rotation logic
+  - Intuitive block controls for movement, rotation, and dropping
+  - Block drop preview visualization (ghost piece)
+  - Multiple game modes (Classic, Timed, Challenge)
+  - Variable difficulty levels
+  - Special animations for level increases and line clears
+  - Pause functionality with overlay
+
+- **Comprehensive Settings System**
+  - **Control Customization**: Multiple control schemes (Arrow Keys, WASD, Custom)
+  - **Key Mapping**: Fully customizable key bindings for all game actions
+  - **Audio Settings**: Sound effects and music volume control with enable/disable options
+  - **Visual Themes**: Multiple color themes (Classic, Dark, High Contrast, Neon, Monochrome)
+  - **Animation Options**: Configurable animation levels (None, Minimal, Normal, Enhanced)
+  - **Gameplay Features**: Toggleable ghost piece and auto-pause settings
+  - **Persistent Storage**: Settings automatically saved and restored between sessions
+  - **Real-time Application**: Settings changes applied immediately during gameplay
+
+- **Enhanced User Interface**
+  - Comprehensive gameplay interface with:
+    - Current game board display
+    - Score, level, and cleared rows tracking
+    - Next piece preview
+    - Difficulty level indicator
+    - Line clear statistics
   - Responsive interface that adapts to different console window sizes
   - Compact mode for smaller screens
   - Double buffering for smoother rendering
-- Multiple game modes (Classic, Timed, Challenge)
-- Variable difficulty levels
-- Special animations for level increases and line clears
-- Pause functionality with overlay
-- Game state saving and loading
-- User statistics and high scores
-- Responsive UI design for various screen sizes
-- Cross-browser compatibility
+  - Intuitive settings menu with organized subsections
+
+- **Advanced Features**
+  - Game state saving and loading
+  - User statistics and high scores
+  - Responsive UI design for various screen sizes
+  - Cross-browser compatibility
 
 ## Technologies
 

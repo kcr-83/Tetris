@@ -375,35 +375,45 @@ namespace Tetris.Core.UI
         }
 
         /// <summary>
-        /// Shows the settings menu.
+        /// Shows the settings menu using the new SettingsInterface.
         /// </summary>
-        private void ShowSettingsMenu()
+        private async void ShowSettingsMenu()
         {
-            Console.Clear();
-            Console.ForegroundColor = TitleColor;
-            Console.WriteLine("===== SETTINGS =====");
-            Console.WriteLine();
+            try
+            {
+                var settingsService = new Services.UserSettingsService();
+                var settingsInterface = new SettingsInterface(settingsService);
+                
+                settingsInterface.ReturnToMenuRequested += (sender, args) => 
+                {
+                    // Return to menu is handled by the main game loop
+                };
+                
+                settingsInterface.SettingsSaved += (sender, args) => 
+                {
+                    // Settings have been saved, could show confirmation or apply them
+                    Console.Clear();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Settings saved successfully!");
+                    Console.WriteLine("Changes will take effect immediately.");
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine("Press any key to return to the main menu...");
+                    Console.ReadKey(true);
+                };
 
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("Game Settings:");
-            Console.WriteLine();
-
-            Console.WriteLine("1. Music: ON");
-            Console.WriteLine("2. Sound Effects: ON");
-            Console.WriteLine("3. Control Scheme: Standard");
-            Console.WriteLine("4. Difficulty: Normal");
-            Console.WriteLine("5. Theme: Classic");
-            Console.WriteLine();
-
-            Console.WriteLine("Select an option to change (or 0 to return):");
-
-            var key = Console.ReadKey(true);
-            // In a real implementation, this would modify actual game settings
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("\nSettings feature not yet implemented.");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine("\nPress any key to return to the main menu...");
-            Console.ReadKey(true);
+                await settingsInterface.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Error opening settings: {ex.Message}");
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine("Press any key to return to the main menu...");
+                Console.ReadKey(true);
+            }
         }
 
         /// <summary>

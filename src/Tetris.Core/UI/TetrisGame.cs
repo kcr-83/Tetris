@@ -16,6 +16,8 @@ namespace Tetris.Core.UI
         private readonly GameOverDisplay _gameOverDisplay;
         private readonly GameplayInterface _gameplayInterface;
         private GameplayInterfaceComplete? _gameplayInterfaceComplete;
+        private readonly IUserSettingsService _settingsService;
+        private readonly SettingsApplicator _settingsApplicator;
         private bool _isGameActive;
         private bool _isPaused;
         private bool _isExiting;
@@ -31,6 +33,8 @@ namespace Tetris.Core.UI
         public TetrisGame()
         {
             _gameEngine = new GameEngine();
+            _settingsService = new UserSettingsService();
+            _settingsApplicator = new SettingsApplicator(_settingsService, _gameEngine);
             _mainMenu = new MainMenuInterface(_gameEngine);
             _gameOverDisplay = new GameOverDisplay(_gameEngine);
             _gameplayInterface = new GameplayInterface(_gameEngine);
@@ -60,6 +64,10 @@ namespace Tetris.Core.UI
         /// <returns>A task that completes when the application exits.</returns>
         public async Task RunAsync()
         {
+            // Load and apply user settings
+            await _settingsService.LoadSettingsAsync();
+            await _settingsApplicator.ApplySettingsAsync();
+
             // Show the main menu
             await _mainMenu.ShowAsync();
 
@@ -173,34 +181,17 @@ namespace Tetris.Core.UI
         private async Task ProcessGameInputAsync()
         {
             var key = Console.ReadKey(true);
-            bool fastDropActive = false;
 
+            // First, try to handle input through the settings applicator
+            if (_settingsApplicator.ProcessKeyInput(key.Key))
+            {
+                // Input was handled by the settings system
+                return;
+            }
+
+            // Handle system keys that are not configurable
             switch (key.Key)
             {
-                case ConsoleKey.LeftArrow:
-                    // Quick successive moves for responsive controls
-                    _gameEngine.MovePieceLeft();
-                    break;
-
-                case ConsoleKey.RightArrow:
-                    // Quick successive moves for responsive controls
-                    _gameEngine.MovePieceRight();
-                    break;
-
-                case ConsoleKey.UpArrow:
-                    // Support for multiple rotations in quick succession
-                    _gameEngine.RotatePieceClockwise();
-                    break;
-
-                case ConsoleKey.DownArrow:
-                    _gameEngine.ActivateFastDrop();
-                    fastDropActive = true;
-                    break;
-
-                case ConsoleKey.Spacebar:
-                    _gameEngine.HardDrop();
-                    break;
-
                 case ConsoleKey.P:
                     TogglePause();
                     break;
@@ -213,22 +204,40 @@ namespace Tetris.Core.UI
                     PromptExitToMenu();
                     break;
 
-                // Additional keys for improved controls
-                case ConsoleKey.Z: // Alternative rotation (counterclockwise)
-                    // If implemented in the game engine
-                    // _gameEngine.RotatePieceCounterclockwise();
+                // Fallback controls for users who haven't configured custom mappings
+                case ConsoleKey.LeftArrow:
+                    _gameEngine.MovePieceLeft();
                     break;
 
-                case ConsoleKey.C: // Hold piece functionality if implemented
-                    // If implemented in the game engine
+                case ConsoleKey.RightArrow:
+                    _gameEngine.MovePieceRight();
+                    break;
+
+                case ConsoleKey.UpArrow:
+                    _gameEngine.RotatePieceClockwise();
+                    break;
+
+                case ConsoleKey.DownArrow:
+                    _gameEngine.ActivateFastDrop();
+                    break;
+
+                case ConsoleKey.Spacebar:
+                    _gameEngine.HardDrop();
+                    break;
+
+                // Additional fallback keys
+                case ConsoleKey.Z:
+                    // Alternative rotation (counterclockwise) if implemented
+                    if (_gameEngine.GetType().GetMethod("RotatePieceCounterClockwise") != null)
+                    {
+                        _gameEngine.RotatePieceCounterClockwise();
+                    }
+                    break;
+
+                case ConsoleKey.C:
+                    // Hold piece functionality if implemented
                     // _gameEngine.HoldCurrentPiece();
                     break;
-            }
-
-            // Release fast drop if down arrow is released and no other keys maintain it
-            if (!fastDropActive)
-            {
-                _gameEngine.DeactivateFastDrop();
             }
         }
 
@@ -237,6 +246,11 @@ namespace Tetris.Core.UI
         /// </summary>
         private void DisplayGame()
         {
+            // Apply current color scheme before rendering
+            var colorScheme = _settingsApplicator.GetCurrentColorScheme();
+            Console.BackgroundColor = colorScheme.Background;
+            Console.ForegroundColor = colorScheme.Text;
+
             // Use the GameplayInterface to render the game
             _gameplayInterface.Render();
 
