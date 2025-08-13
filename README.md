@@ -29,6 +29,7 @@ A modern implementation of the classic Tetris game built with .NET Core 9.0 and 
     - [Prerequisites](#prerequisites)
     - [Development Setup](#development-setup)
     - [Docker Setup](#docker-setup)
+    - [Production Deployment](#production-deployment)
   - [Game Features](#game-features)
     - [Game Modes](#game-modes)
     - [Difficulty Levels](#difficulty-levels)
@@ -383,6 +384,10 @@ For more detailed data model information, see [tetris-data-model.md](copilot/tet
 ```
 docker-compose up -d
 ```
+
+### Production Deployment
+
+For comprehensive deployment instructions including system requirements, installation methods, and configuration options, see the [Deployment Instructions](docs/deployment-instructions.md).
 
 ## Game Features
 
