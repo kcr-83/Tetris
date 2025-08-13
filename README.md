@@ -397,6 +397,7 @@ For comprehensive deployment instructions including system requirements, install
 - **[User Manual](docs/user-manual.md)**: Complete game guide covering all features, controls, and strategies
 
 ### For Developers
+- **[Developer Guide](docs/developer-guide.md)**: Comprehensive technical documentation covering architecture, design patterns, and extension guidelines
 - **Architecture**: See [tetris-architecture.md](copilot/tetris-architecture.md)
 - **Data Model**: See [tetris-data-model.md](copilot/tetris-data-model.md)
 - **Deployment**: See [deployment-instructions.md](docs/deployment-instructions.md)

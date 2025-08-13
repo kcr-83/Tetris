@@ -141,9 +141,12 @@ Below is a list of prompts that can be used during the development of a Tetris a
     - Troubleshooting and FAQ section
     - **Files**: `docs/user-manual.md`, `docs/quick-start-guide.md`
 
-23. **Developer Documentation**
+23. **Developer Documentation** ✅
     ```
     Prepare technical documentation for developers, explaining the application architecture, code structure, and ways to extend functionality.
     ```
+    - Comprehensive technical documentation covering architecture, design patterns, and extension guidelines
+    - API reference and developer-focused examples
+    - **Files**: `docs/developer-guide.md`
 
 These prompts can be used as starting points for various stages of Tetris application development and can be adjusted depending on specific needs and challenges that arise during implementation.
