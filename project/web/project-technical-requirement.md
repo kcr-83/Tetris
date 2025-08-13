@@ -1,0 +1,1 @@
+System should be developed using .Net Core 9.0 or later and C# and SignalR for real-time communication with web. The frontend should be built using HTML5 Canvas + JavaScript/TypeScript.
