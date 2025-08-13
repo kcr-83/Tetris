@@ -30,6 +30,7 @@ A modern implementation of the classic Tetris game built with .NET Core 9.0 and 
     - [Development Setup](#development-setup)
     - [Docker Setup](#docker-setup)
     - [Production Deployment](#production-deployment)
+  - [Documentation](#documentation)
   - [Game Features](#game-features)
     - [Game Modes](#game-modes)
     - [Difficulty Levels](#difficulty-levels)
@@ -388,6 +389,17 @@ docker-compose up -d
 ### Production Deployment
 
 For comprehensive deployment instructions including system requirements, installation methods, and configuration options, see the [Deployment Instructions](docs/deployment-instructions.md).
+
+## Documentation
+
+### For Players
+- **[Quick Start Guide](docs/quick-start-guide.md)**: Get playing in minutes
+- **[User Manual](docs/user-manual.md)**: Complete game guide covering all features, controls, and strategies
+
+### For Developers
+- **Architecture**: See [tetris-architecture.md](copilot/tetris-architecture.md)
+- **Data Model**: See [tetris-data-model.md](copilot/tetris-data-model.md)
+- **Deployment**: See [deployment-instructions.md](docs/deployment-instructions.md)
 
 ## Game Features
 
