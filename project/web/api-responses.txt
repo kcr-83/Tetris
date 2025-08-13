@@ -1,0 +1,642 @@
+# Tetris Web Application - API Response Examples
+
+## Authentication Endpoints
+
+### POST /api/auth/register
+**Request:**
+```json
+{
+  "username": "player123",
+  "email": "player123@example.com",
+  "password": "SecurePass123!",
+  "displayName": "Player One"
+}
+```
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "userId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "username": "player123",
+    "email": "player123@example.com",
+    "displayName": "Player One",
+    "isGuest": false,
+    "emailConfirmed": false,
+    "createdAt": "2025-08-13T10:30:00Z"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Username already exists",
+  "errors": [
+    {
+      "field": "username",
+      "code": "DUPLICATE_USERNAME",
+      "message": "Username 'player123' is already taken"
+    }
+  ]
+}
+```
+
+### POST /api/auth/login
+**Request:**
+```json
+{
+  "username": "player123",
+  "password": "SecurePass123!"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "sessionToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "userId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "username": "player123",
+      "displayName": "Player One",
+      "isGuest": false,
+      "lastLoginAt": "2025-08-13T10:45:00Z"
+    },
+    "expiresAt": "2025-08-14T10:45:00Z"
+  }
+}
+```
+
+### POST /api/auth/guest
+**Request:**
+```json
+{
+  "displayName": "Guest Player"
+}
+```
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Guest session created",
+  "data": {
+    "sessionToken": "guest_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "userId": "temp-guest-12345",
+      "username": "guest_12345",
+      "displayName": "Guest Player",
+      "isGuest": true,
+      "createdAt": "2025-08-13T10:50:00Z"
+    },
+    "expiresAt": "2025-08-13T22:50:00Z"
+  }
+}
+```
+
+## Game Management Endpoints
+
+### POST /api/games/start
+**Request:**
+```json
+{
+  "gameMode": "Classic",
+  "difficultyLevel": "Medium",
+  "challengeType": null,
+  "timeLimitSeconds": null
+}
+```
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Game session started",
+  "data": {
+    "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "gameMode": "Classic",
+    "difficultyLevel": "Medium",
+    "status": "Active",
+    "initialState": {
+      "board": [[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],
+      "currentPiece": {
+        "type": "T",
+        "position": {"x": 4, "y": 0},
+        "rotation": 0,
+        "blocks": [[0,1,0],[1,1,1],[0,0,0]]
+      },
+      "nextPiece": {
+        "type": "I",
+        "blocks": [[1,1,1,1]]
+      },
+      "score": 0,
+      "level": 1,
+      "linesCleared": 0,
+      "piecesPlaced": 0
+    },
+    "gameStartedAt": "2025-08-13T11:00:00Z"
+  }
+}
+```
+
+### GET /api/games/{gameSessionId}
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "gameMode": "Classic",
+    "difficultyLevel": "Medium",
+    "status": "Active",
+    "currentState": {
+      "board": [[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],
+      "currentPiece": {
+        "type": "S",
+        "position": {"x": 3, "y": 5},
+        "rotation": 1,
+        "blocks": [[0,1,1],[1,1,0],[0,0,0]]
+      },
+      "nextPiece": {
+        "type": "Z",
+        "blocks": [[1,1,0],[0,1,1],[0,0,0]]
+      },
+      "heldPiece": null,
+      "score": 1200,
+      "level": 2,
+      "linesCleared": 8,
+      "piecesPlaced": 25,
+      "clearCounts": {
+        "single": 4,
+        "double": 2,
+        "triple": 0,
+        "tetris": 0
+      }
+    },
+    "gameStartedAt": "2025-08-13T11:00:00Z",
+    "playTimeSeconds": 180,
+    "lastUpdatedAt": "2025-08-13T11:03:00Z"
+  }
+}
+```
+
+### POST /api/games/{gameSessionId}/save
+**Request:**
+```json
+{
+  "saveName": "My Epic Game"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Game saved successfully",
+  "data": {
+    "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "saveName": "My Epic Game",
+    "savedAt": "2025-08-13T11:05:00Z",
+    "autoSaved": false
+  }
+}
+```
+
+### GET /api/games/saved
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "savedGames": [
+      {
+        "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "gameMode": "Classic",
+        "difficultyLevel": "Medium",
+        "status": "Paused",
+        "score": 1200,
+        "level": 2,
+        "linesCleared": 8,
+        "autoSaved": false,
+        "savedAt": "2025-08-13T11:05:00Z",
+        "playTimeSeconds": 180
+      },
+      {
+        "gameSessionId": "b2c3d4e5-f6g7-8901-bcde-f23456789012",
+        "gameMode": "Timed",
+        "difficultyLevel": "Hard",
+        "status": "Paused",
+        "score": 850,
+        "level": 1,
+        "linesCleared": 5,
+        "timeRemainingSeconds": 45,
+        "autoSaved": true,
+        "savedAt": "2025-08-13T10:30:00Z",
+        "playTimeSeconds": 75
+      }
+    ],
+    "totalCount": 2
+  }
+}
+```
+
+## User Settings Endpoints
+
+### GET /api/users/settings
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "controls": {
+      "keyMoveLeft": "ArrowLeft",
+      "keyMoveRight": "ArrowRight",
+      "keyRotateClockwise": "ArrowUp",
+      "keyRotateCounterClockwise": "z",
+      "keySoftDrop": "ArrowDown",
+      "keyHardDrop": "Space",
+      "keyHold": "c",
+      "keyPause": "p"
+    },
+    "gameplay": {
+      "defaultDifficulty": "Medium",
+      "autoSaveEnabled": true,
+      "showGhostPiece": true,
+      "showGridLines": true,
+      "enableAnimations": true,
+      "enableParticleEffects": true
+    },
+    "audio": {
+      "soundEffectsEnabled": true,
+      "musicEnabled": true,
+      "soundEffectsVolume": 0.70,
+      "musicVolume": 0.50
+    },
+    "visual": {
+      "themeName": "Classic",
+      "boardWidth": 10,
+      "boardHeight": 20,
+      "cellSize": 30,
+      "tetrominoColorScheme": "Classic"
+    },
+    "accessibility": {
+      "highContrastMode": false,
+      "keyRepeatDelay": 100,
+      "keyRepeatRate": 50,
+      "screenReaderEnabled": false
+    },
+    "updatedAt": "2025-08-13T09:15:00Z"
+  }
+}
+```
+
+### PUT /api/users/settings
+**Request:**
+```json
+{
+  "controls": {
+    "keyMoveLeft": "a",
+    "keyMoveRight": "d",
+    "keyRotateClockwise": "w",
+    "keyRotateCounterClockwise": "q"
+  },
+  "audio": {
+    "soundEffectsVolume": 0.85,
+    "musicVolume": 0.30
+  },
+  "accessibility": {
+    "highContrastMode": true
+  }
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Settings updated successfully",
+  "data": {
+    "updatedFields": ["controls", "audio", "accessibility"],
+    "updatedAt": "2025-08-13T11:10:00Z"
+  }
+}
+```
+
+## Statistics and Leaderboards
+
+### GET /api/users/statistics
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "overall": {
+      "totalGamesPlayed": 147,
+      "totalGamesCompleted": 132,
+      "totalPlayTimeSeconds": 89640,
+      "highScore": 45300,
+      "totalScore": 892650,
+      "averageScore": 6075.34
+    },
+    "lines": {
+      "totalLinesCleared": 1256,
+      "totalSingleClears": 423,
+      "totalDoubleClears": 187,
+      "totalTripleClears": 89,
+      "totalTetrisClears": 45
+    },
+    "pieces": {
+      "totalPiecesPlaced": 5847,
+      "piecesPerMinute": 23.45
+    },
+    "levels": {
+      "highestLevelReached": 12,
+      "averageLevelReached": 4.23
+    },
+    "modes": {
+      "classicModeGamesPlayed": 89,
+      "timedModeGamesPlayed": 34,
+      "challengeModeGamesPlayed": 24
+    },
+    "bestGame": {
+      "score": 45300,
+      "level": 12,
+      "lines": 87,
+      "duration": 1847
+    },
+    "streaks": {
+      "currentWinStreak": 3,
+      "longestWinStreak": 8
+    },
+    "lastUpdatedAt": "2025-08-13T11:00:00Z"
+  }
+}
+```
+
+### GET /api/leaderboards/daily?gameMode=Classic&date=2025-08-13
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "leaderboardDate": "2025-08-13",
+    "gameMode": "Classic",
+    "rankings": {
+      "score": [
+        {
+          "rank": 1,
+          "userId": "user1-id",
+          "username": "TetrisMaster",
+          "displayName": "Tetris Master",
+          "bestScore": 67800,
+          "bestLevel": 15,
+          "bestLines": 124,
+          "totalGamesPlayed": 8
+        },
+        {
+          "rank": 2,
+          "userId": "user2-id",
+          "username": "BlockBuster",
+          "displayName": "Block Buster",
+          "bestScore": 52400,
+          "bestLevel": 11,
+          "bestLines": 89,
+          "totalGamesPlayed": 12
+        },
+        {
+          "rank": 3,
+          "userId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "username": "player123",
+          "displayName": "Player One",
+          "bestScore": 45300,
+          "bestLevel": 12,
+          "bestLines": 87,
+          "totalGamesPlayed": 5
+        }
+      ]
+    },
+    "userRank": {
+      "scoreRank": 3,
+      "levelRank": 2,
+      "linesRank": 4
+    },
+    "totalPlayers": 156
+  }
+}
+```
+
+## Achievements Endpoints
+
+### GET /api/achievements
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "category": "Scoring",
+        "achievements": [
+          {
+            "achievementId": "score-1000",
+            "name": "First Thousand",
+            "description": "Score 1,000 points in a single game",
+            "points": 10,
+            "isSecret": false,
+            "iconUrl": "/images/achievements/first-thousand.png",
+            "badgeColor": "bronze",
+            "userProgress": {
+              "isCompleted": true,
+              "completedAt": "2025-08-10T14:30:00Z",
+              "progress": 1000,
+              "progressPercentage": 100
+            }
+          },
+          {
+            "achievementId": "score-10000",
+            "name": "Ten Grand",
+            "description": "Score 10,000 points in a single game",
+            "points": 25,
+            "isSecret": false,
+            "iconUrl": "/images/achievements/ten-grand.png",
+            "badgeColor": "silver",
+            "userProgress": {
+              "isCompleted": false,
+              "progress": 8450,
+              "progressPercentage": 84.5
+            }
+          }
+        ]
+      },
+      {
+        "category": "Lines",
+        "achievements": [
+          {
+            "achievementId": "tetris-master",
+            "name": "Tetris Master",
+            "description": "Clear 4 lines with a single piece (Tetris) 10 times",
+            "points": 50,
+            "isSecret": false,
+            "iconUrl": "/images/achievements/tetris-master.png",
+            "badgeColor": "gold",
+            "userProgress": {
+              "isCompleted": false,
+              "progress": 7,
+              "progressPercentage": 70
+            }
+          }
+        ]
+      }
+    ],
+    "userSummary": {
+      "totalAchievements": 45,
+      "completedAchievements": 12,
+      "totalPoints": 340,
+      "completionPercentage": 26.7
+    }
+  }
+}
+```
+
+## SignalR Game Events
+
+### Game State Update (Server to Client)
+```json
+{
+  "eventType": "GameStateUpdate",
+  "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp": "2025-08-13T11:05:30Z",
+  "data": {
+    "board": [[0,0,0,0,0,0,0,0,0,0]],
+    "currentPiece": {
+      "type": "L",
+      "position": {"x": 3, "y": 8},
+      "rotation": 2,
+      "blocks": [[0,0,1],[1,1,1],[0,0,0]]
+    },
+    "score": 1400,
+    "level": 2,
+    "linesCleared": 10,
+    "piecesPlaced": 28
+  }
+}
+```
+
+### Line Clear Event (Server to Client)
+```json
+{
+  "eventType": "LinesCleared",
+  "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp": "2025-08-13T11:05:30Z",
+  "data": {
+    "linesCleared": 2,
+    "clearedRows": [18, 19],
+    "clearType": "Double",
+    "pointsEarned": 300,
+    "newScore": 1400,
+    "levelUp": false
+  }
+}
+```
+
+### Game Over Event (Server to Client)
+```json
+{
+  "eventType": "GameOver",
+  "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp": "2025-08-13T11:12:45Z",
+  "data": {
+    "finalScore": 12450,
+    "finalLevel": 4,
+    "totalLines": 34,
+    "playTimeSeconds": 765,
+    "newPersonalBest": true,
+    "achievementsUnlocked": [
+      {
+        "achievementId": "score-10000",
+        "name": "Ten Grand",
+        "points": 25
+      }
+    ],
+    "statistics": {
+      "piecesPlaced": 187,
+      "singleClears": 12,
+      "doubleClears": 8,
+      "tripleClears": 3,
+      "tetrisClears": 2,
+      "piecesPerMinute": 14.67
+    }
+  }
+}
+```
+
+### Player Input (Client to Server)
+```json
+{
+  "eventType": "PlayerInput",
+  "gameSessionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp": "2025-08-13T11:05:28Z",
+  "data": {
+    "inputType": "Move",
+    "direction": "Right",
+    "inputSequence": 1247
+  }
+}
+```
+
+## Error Responses
+
+### General Error Format
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "gameMode",
+      "code": "INVALID_VALUE",
+      "message": "Game mode must be one of: Classic, Timed, Challenge"
+    }
+  ],
+  "timestamp": "2025-08-13T11:15:00Z",
+  "traceId": "trace-12345-abcde"
+}
+```
+
+### Authentication Error (401 Unauthorized)
+```json
+{
+  "success": false,
+  "message": "Authentication required",
+  "code": "UNAUTHORIZED",
+  "timestamp": "2025-08-13T11:15:00Z"
+}
+```
+
+### Game Session Not Found (404 Not Found)
+```json
+{
+  "success": false,
+  "message": "Game session not found",
+  "code": "GAME_SESSION_NOT_FOUND",
+  "gameSessionId": "invalid-session-id",
+  "timestamp": "2025-08-13T11:15:00Z"
+}
+```
+
+### Rate Limit Error (429 Too Many Requests)
+```json
+{
+  "success": false,
+  "message": "Rate limit exceeded",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "retryAfter": 60,
+  "timestamp": "2025-08-13T11:15:00Z"
+}
+```

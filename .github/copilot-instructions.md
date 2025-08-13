@@ -8,4 +8,6 @@ Generate code, corrections, and refactorings that comply with the basic principl
   contains links to the specific folders with instructions for different frameworks and technologies.
 - Update the project documentation in the [docs](../docs/) directory after making changes.
 - update the project documentation in the [ProjectDocs](../project/) directory after making changes.
+- update the project documentation in the [ProjectDocs](../project/web/) directory after making changes.
+- update the project documentation in the [ProjectDocs](../project/console/) directory after making changes.
 - update readme file [README.md](../../README.md) after making changes.

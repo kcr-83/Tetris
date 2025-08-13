@@ -1,0 +1,1599 @@
+openapi: 3.0.3
+info:
+  title: Tetris Web Application API
+  description: |
+    RESTful API for the Tetris Web Application supporting real-time gameplay, 
+    user management, statistics, and leaderboards. Built with .NET 9.0 and SignalR
+    for seamless real-time communication.
+    
+    ## Features
+    - User authentication and guest sessions
+    - Real-time game state management via SignalR
+    - Multiple game modes (Classic, Timed, Challenge)
+    - Comprehensive statistics and leaderboards
+    - Achievement system with unlockable content
+    - Customizable user settings and accessibility options
+    
+    ## Authentication
+    The API uses session-based authentication with JWT tokens. Include the session token
+    in the Authorization header: `Authorization: Bearer <token>`
+    
+  version: 1.0.0
+  contact:
+    name: Tetris Web API Support
+    email: support@tetrisweb.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tetrisweb.com/v1
+    description: Production server
+  - url: https://staging-api.tetrisweb.com/v1
+    description: Staging server
+  - url: http://localhost:5000/api
+    description: Development server
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION ENDPOINTS
+  # ============================================================================
+  
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user account
+      description: Create a new user account with username, email, and password
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+            example:
+              username: "player123"
+              email: "player123@example.com"
+              password: "SecurePass123!"
+              displayName: "Player One"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistrationResponse'
+        '400':
+          description: Validation error or duplicate username/email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with username and password
+      description: Authenticate user and create session token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: "player123"
+              password: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/guest:
+    post:
+      tags:
+        - Authentication
+      summary: Create guest session
+      description: Create temporary guest session for anonymous play
+      operationId: createGuestSession
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestSessionRequest'
+            example:
+              displayName: "Guest Player"
+      responses:
+        '201':
+          description: Guest session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestSessionResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout and invalidate session
+      description: Invalidate current session token
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================================
+  # GAME MANAGEMENT ENDPOINTS
+  # ============================================================================
+
+  /games/start:
+    post:
+      tags:
+        - Game Management
+      summary: Start a new game session
+      description: Initialize a new game with specified mode and difficulty
+      operationId: startGame
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartGameRequest'
+            example:
+              gameMode: "Classic"
+              difficultyLevel: "Medium"
+              challengeType: null
+              timeLimitSeconds: null
+      responses:
+        '201':
+          description: Game session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameSessionResponse'
+        '400':
+          description: Invalid game parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /games/{gameSessionId}:
+    get:
+      tags:
+        - Game Management
+      summary: Get current game state
+      description: Retrieve current state of an active or saved game
+      operationId: getGameState
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameSessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the game session
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        '200':
+          description: Game state retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStateResponse'
+        '404':
+          description: Game session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied to this game session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /games/{gameSessionId}/save:
+    post:
+      tags:
+        - Game Management
+      summary: Save current game
+      description: Save the current game state for later resumption
+      operationId: saveGame
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameSessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the game session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveGameRequest'
+            example:
+              saveName: "My Epic Game"
+      responses:
+        '200':
+          description: Game saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveGameResponse'
+        '404':
+          description: Game session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Cannot save completed game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /games/{gameSessionId}/load:
+    post:
+      tags:
+        - Game Management
+      summary: Load saved game
+      description: Resume a previously saved game session
+      operationId: loadGame
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameSessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier for the saved game session
+      responses:
+        '200':
+          description: Game loaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStateResponse'
+        '404':
+          description: Saved game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /games/saved:
+    get:
+      tags:
+        - Game Management
+      summary: List saved games
+      description: Get list of user's saved game sessions
+      operationId: getSavedGames
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of saved games to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of saved games to skip
+      responses:
+        '200':
+          description: Saved games retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedGamesResponse'
+
+  # ============================================================================
+  # USER SETTINGS ENDPOINTS
+  # ============================================================================
+
+  /users/settings:
+    get:
+      tags:
+        - User Settings
+      summary: Get user settings
+      description: Retrieve current user settings and preferences
+      operationId: getUserSettings
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - User Settings
+      summary: Update user settings
+      description: Update user settings and preferences
+      operationId: updateUserSettings
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserSettingsRequest'
+            example:
+              controls:
+                keyMoveLeft: "a"
+                keyMoveRight: "d"
+              audio:
+                soundEffectsVolume: 0.85
+              accessibility:
+                highContrastMode: true
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateSettingsResponse'
+        '400':
+          description: Invalid setting values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================================
+  # STATISTICS AND LEADERBOARDS
+  # ============================================================================
+
+  /users/statistics:
+    get:
+      tags:
+        - Statistics
+      summary: Get user statistics
+      description: Retrieve comprehensive user game statistics
+      operationId: getUserStatistics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatisticsResponse'
+
+  /leaderboards/daily:
+    get:
+      tags:
+        - Leaderboards
+      summary: Get daily leaderboards
+      description: Retrieve daily leaderboard rankings for specified game mode
+      operationId: getDailyLeaderboards
+      parameters:
+        - name: gameMode
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GameMode'
+          description: Game mode for leaderboard
+          example: "Classic"
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Date for leaderboard (defaults to today)
+          example: "2025-08-13"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Maximum number of entries to return
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+
+  /leaderboards/weekly:
+    get:
+      tags:
+        - Leaderboards
+      summary: Get weekly leaderboards
+      description: Retrieve weekly leaderboard rankings
+      operationId: getWeeklyLeaderboards
+      parameters:
+        - name: gameMode
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GameMode'
+        - name: week
+          in: query
+          schema:
+            type: string
+            pattern: '^\d{4}-W\d{2}$'
+          description: Week in format YYYY-W## (defaults to current week)
+          example: "2025-W33"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Weekly leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+
+  # ============================================================================
+  # ACHIEVEMENTS ENDPOINTS
+  # ============================================================================
+
+  /achievements:
+    get:
+      tags:
+        - Achievements
+      summary: Get user achievements
+      description: Retrieve all achievements with user progress
+      operationId: getUserAchievements
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [Scoring, Lines, Speed, Special, All]
+            default: All
+          description: Filter achievements by category
+      responses:
+        '200':
+          description: Achievements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementsResponse'
+
+  /achievements/available:
+    get:
+      tags:
+        - Achievements
+      summary: Get available achievements
+      description: Retrieve all achievements definitions (public endpoint)
+      operationId: getAvailableAchievements
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [Scoring, Lines, Speed, Special, All]
+            default: All
+      responses:
+        '200':
+          description: Available achievements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableAchievementsResponse'
+
+# ============================================================================
+# COMPONENTS
+# ============================================================================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Session token obtained from login or guest session
+
+  schemas:
+    # ========================================================================
+    # AUTHENTICATION SCHEMAS
+    # ========================================================================
+    
+    UserRegistrationRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: "player123"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "player123@example.com"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          example: "SecurePass123!"
+        displayName:
+          type: string
+          maxLength: 100
+          example: "Player One"
+
+    UserRegistrationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User registered successfully"
+        data:
+          $ref: '#/components/schemas/UserInfo'
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: "player123"
+        password:
+          type: string
+          example: "SecurePass123!"
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Login successful"
+        data:
+          type: object
+          properties:
+            sessionToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            user:
+              $ref: '#/components/schemas/UserInfo'
+            expiresAt:
+              type: string
+              format: date-time
+              example: "2025-08-14T10:45:00Z"
+
+    GuestSessionRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          example: "Guest Player"
+
+    GuestSessionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Guest session created"
+        data:
+          type: object
+          properties:
+            sessionToken:
+              type: string
+              example: "guest_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            user:
+              $ref: '#/components/schemas/UserInfo'
+            expiresAt:
+              type: string
+              format: date-time
+              example: "2025-08-13T22:50:00Z"
+
+    UserInfo:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        username:
+          type: string
+          example: "player123"
+        email:
+          type: string
+          format: email
+          example: "player123@example.com"
+        displayName:
+          type: string
+          example: "Player One"
+        isGuest:
+          type: boolean
+          example: false
+        emailConfirmed:
+          type: boolean
+          example: false
+        lastLoginAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:45:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T10:30:00Z"
+
+    # ========================================================================
+    # GAME SCHEMAS
+    # ========================================================================
+
+    GameMode:
+      type: string
+      enum: [Classic, Timed, Challenge]
+      example: "Classic"
+
+    DifficultyLevel:
+      type: string
+      enum: [Easy, Medium, Hard]
+      example: "Medium"
+
+    GameStatus:
+      type: string
+      enum: [Active, Paused, Completed, Abandoned]
+      example: "Active"
+
+    StartGameRequest:
+      type: object
+      required:
+        - gameMode
+        - difficultyLevel
+      properties:
+        gameMode:
+          $ref: '#/components/schemas/GameMode'
+        difficultyLevel:
+          $ref: '#/components/schemas/DifficultyLevel'
+        challengeType:
+          type: string
+          nullable: true
+          example: null
+        timeLimitSeconds:
+          type: integer
+          nullable: true
+          minimum: 30
+          maximum: 3600
+          example: null
+
+    GameSessionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Game session started"
+        data:
+          $ref: '#/components/schemas/GameSession'
+
+    GameStateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/GameSession'
+
+    GameSession:
+      type: object
+      properties:
+        gameSessionId:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        gameMode:
+          $ref: '#/components/schemas/GameMode'
+        difficultyLevel:
+          $ref: '#/components/schemas/DifficultyLevel'
+        status:
+          $ref: '#/components/schemas/GameStatus'
+        currentState:
+          $ref: '#/components/schemas/GameState'
+        gameStartedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T11:00:00Z"
+        gameEndedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        playTimeSeconds:
+          type: integer
+          example: 180
+        lastUpdatedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T11:03:00Z"
+
+    GameState:
+      type: object
+      properties:
+        board:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+          example: [[0,0,0,0,0,0,0,0,0,0]]
+        currentPiece:
+          $ref: '#/components/schemas/Tetromino'
+        nextPiece:
+          $ref: '#/components/schemas/Tetromino'
+        heldPiece:
+          $ref: '#/components/schemas/Tetromino'
+        score:
+          type: integer
+          format: int64
+          example: 1200
+        level:
+          type: integer
+          example: 2
+        linesCleared:
+          type: integer
+          example: 8
+        piecesPlaced:
+          type: integer
+          example: 25
+        clearCounts:
+          $ref: '#/components/schemas/LineClearCounts'
+
+    Tetromino:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [I, J, L, O, S, T, Z]
+          example: "T"
+        position:
+          $ref: '#/components/schemas/Position'
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 3
+          example: 0
+        blocks:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+          example: [[0,1,0],[1,1,1],[0,0,0]]
+
+    Position:
+      type: object
+      properties:
+        x:
+          type: integer
+          example: 4
+        y:
+          type: integer
+          example: 0
+
+    LineClearCounts:
+      type: object
+      properties:
+        single:
+          type: integer
+          example: 4
+        double:
+          type: integer
+          example: 2
+        triple:
+          type: integer
+          example: 0
+        tetris:
+          type: integer
+          example: 0
+
+    SaveGameRequest:
+      type: object
+      properties:
+        saveName:
+          type: string
+          maxLength: 100
+          example: "My Epic Game"
+
+    SaveGameResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Game saved successfully"
+        data:
+          type: object
+          properties:
+            gameSessionId:
+              type: string
+              format: uuid
+            saveName:
+              type: string
+              example: "My Epic Game"
+            savedAt:
+              type: string
+              format: date-time
+              example: "2025-08-13T11:05:00Z"
+            autoSaved:
+              type: boolean
+              example: false
+
+    SavedGamesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            savedGames:
+              type: array
+              items:
+                $ref: '#/components/schemas/SavedGame'
+            totalCount:
+              type: integer
+              example: 2
+
+    SavedGame:
+      type: object
+      properties:
+        gameSessionId:
+          type: string
+          format: uuid
+        gameMode:
+          $ref: '#/components/schemas/GameMode'
+        difficultyLevel:
+          $ref: '#/components/schemas/DifficultyLevel'
+        status:
+          $ref: '#/components/schemas/GameStatus'
+        score:
+          type: integer
+          format: int64
+          example: 1200
+        level:
+          type: integer
+          example: 2
+        linesCleared:
+          type: integer
+          example: 8
+        timeRemainingSeconds:
+          type: integer
+          nullable: true
+          example: 45
+        autoSaved:
+          type: boolean
+          example: false
+        savedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T11:05:00Z"
+        playTimeSeconds:
+          type: integer
+          example: 180
+
+    # ========================================================================
+    # USER SETTINGS SCHEMAS
+    # ========================================================================
+
+    UserSettingsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/UserSettings'
+
+    UserSettings:
+      type: object
+      properties:
+        controls:
+          $ref: '#/components/schemas/ControlSettings'
+        gameplay:
+          $ref: '#/components/schemas/GameplaySettings'
+        audio:
+          $ref: '#/components/schemas/AudioSettings'
+        visual:
+          $ref: '#/components/schemas/VisualSettings'
+        accessibility:
+          $ref: '#/components/schemas/AccessibilitySettings'
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T09:15:00Z"
+
+    ControlSettings:
+      type: object
+      properties:
+        keyMoveLeft:
+          type: string
+          example: "ArrowLeft"
+        keyMoveRight:
+          type: string
+          example: "ArrowRight"
+        keyRotateClockwise:
+          type: string
+          example: "ArrowUp"
+        keyRotateCounterClockwise:
+          type: string
+          example: "z"
+        keySoftDrop:
+          type: string
+          example: "ArrowDown"
+        keyHardDrop:
+          type: string
+          example: "Space"
+        keyHold:
+          type: string
+          example: "c"
+        keyPause:
+          type: string
+          example: "p"
+
+    GameplaySettings:
+      type: object
+      properties:
+        defaultDifficulty:
+          $ref: '#/components/schemas/DifficultyLevel'
+        autoSaveEnabled:
+          type: boolean
+          example: true
+        showGhostPiece:
+          type: boolean
+          example: true
+        showGridLines:
+          type: boolean
+          example: true
+        enableAnimations:
+          type: boolean
+          example: true
+        enableParticleEffects:
+          type: boolean
+          example: true
+
+    AudioSettings:
+      type: object
+      properties:
+        soundEffectsEnabled:
+          type: boolean
+          example: true
+        musicEnabled:
+          type: boolean
+          example: true
+        soundEffectsVolume:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.70
+        musicVolume:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.50
+
+    VisualSettings:
+      type: object
+      properties:
+        themeName:
+          type: string
+          example: "Classic"
+        boardWidth:
+          type: integer
+          example: 10
+        boardHeight:
+          type: integer
+          example: 20
+        cellSize:
+          type: integer
+          example: 30
+        tetrominoColorScheme:
+          type: string
+          example: "Classic"
+
+    AccessibilitySettings:
+      type: object
+      properties:
+        highContrastMode:
+          type: boolean
+          example: false
+        keyRepeatDelay:
+          type: integer
+          example: 100
+        keyRepeatRate:
+          type: integer
+          example: 50
+        screenReaderEnabled:
+          type: boolean
+          example: false
+
+    UpdateUserSettingsRequest:
+      type: object
+      properties:
+        controls:
+          $ref: '#/components/schemas/ControlSettings'
+        gameplay:
+          $ref: '#/components/schemas/GameplaySettings'
+        audio:
+          $ref: '#/components/schemas/AudioSettings'
+        visual:
+          $ref: '#/components/schemas/VisualSettings'
+        accessibility:
+          $ref: '#/components/schemas/AccessibilitySettings'
+
+    UpdateSettingsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Settings updated successfully"
+        data:
+          type: object
+          properties:
+            updatedFields:
+              type: array
+              items:
+                type: string
+              example: ["controls", "audio", "accessibility"]
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-08-13T11:10:00Z"
+
+    # ========================================================================
+    # STATISTICS SCHEMAS
+    # ========================================================================
+
+    UserStatisticsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/UserStatistics'
+
+    UserStatistics:
+      type: object
+      properties:
+        overall:
+          $ref: '#/components/schemas/OverallStatistics'
+        lines:
+          $ref: '#/components/schemas/LineStatistics'
+        pieces:
+          $ref: '#/components/schemas/PieceStatistics'
+        levels:
+          $ref: '#/components/schemas/LevelStatistics'
+        modes:
+          $ref: '#/components/schemas/ModeStatistics'
+        bestGame:
+          $ref: '#/components/schemas/BestGameStatistics'
+        streaks:
+          $ref: '#/components/schemas/StreakStatistics'
+        lastUpdatedAt:
+          type: string
+          format: date-time
+          example: "2025-08-13T11:00:00Z"
+
+    OverallStatistics:
+      type: object
+      properties:
+        totalGamesPlayed:
+          type: integer
+          example: 147
+        totalGamesCompleted:
+          type: integer
+          example: 132
+        totalPlayTimeSeconds:
+          type: integer
+          format: int64
+          example: 89640
+        highScore:
+          type: integer
+          format: int64
+          example: 45300
+        totalScore:
+          type: integer
+          format: int64
+          example: 892650
+        averageScore:
+          type: number
+          format: float
+          example: 6075.34
+
+    LineStatistics:
+      type: object
+      properties:
+        totalLinesCleared:
+          type: integer
+          example: 1256
+        totalSingleClears:
+          type: integer
+          example: 423
+        totalDoubleClears:
+          type: integer
+          example: 187
+        totalTripleClears:
+          type: integer
+          example: 89
+        totalTetrisClears:
+          type: integer
+          example: 45
+
+    PieceStatistics:
+      type: object
+      properties:
+        totalPiecesPlaced:
+          type: integer
+          example: 5847
+        piecesPerMinute:
+          type: number
+          format: float
+          example: 23.45
+
+    LevelStatistics:
+      type: object
+      properties:
+        highestLevelReached:
+          type: integer
+          example: 12
+        averageLevelReached:
+          type: number
+          format: float
+          example: 4.23
+
+    ModeStatistics:
+      type: object
+      properties:
+        classicModeGamesPlayed:
+          type: integer
+          example: 89
+        timedModeGamesPlayed:
+          type: integer
+          example: 34
+        challengeModeGamesPlayed:
+          type: integer
+          example: 24
+
+    BestGameStatistics:
+      type: object
+      properties:
+        score:
+          type: integer
+          format: int64
+          example: 45300
+        level:
+          type: integer
+          example: 12
+        lines:
+          type: integer
+          example: 87
+        duration:
+          type: integer
+          example: 1847
+
+    StreakStatistics:
+      type: object
+      properties:
+        currentWinStreak:
+          type: integer
+          example: 3
+        longestWinStreak:
+          type: integer
+          example: 8
+
+    # ========================================================================
+    # LEADERBOARD SCHEMAS
+    # ========================================================================
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Leaderboard'
+
+    Leaderboard:
+      type: object
+      properties:
+        leaderboardDate:
+          type: string
+          format: date
+          example: "2025-08-13"
+        gameMode:
+          $ref: '#/components/schemas/GameMode'
+        rankings:
+          $ref: '#/components/schemas/Rankings'
+        userRank:
+          $ref: '#/components/schemas/UserRank'
+        totalPlayers:
+          type: integer
+          example: 156
+
+    Rankings:
+      type: object
+      properties:
+        score:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        userId:
+          type: string
+          format: uuid
+          example: "user1-id"
+        username:
+          type: string
+          example: "TetrisMaster"
+        displayName:
+          type: string
+          example: "Tetris Master"
+        bestScore:
+          type: integer
+          format: int64
+          example: 67800
+        bestLevel:
+          type: integer
+          example: 15
+        bestLines:
+          type: integer
+          example: 124
+        totalGamesPlayed:
+          type: integer
+          example: 8
+
+    UserRank:
+      type: object
+      properties:
+        scoreRank:
+          type: integer
+          example: 3
+        levelRank:
+          type: integer
+          example: 2
+        linesRank:
+          type: integer
+          example: 4
+
+    # ========================================================================
+    # ACHIEVEMENTS SCHEMAS
+    # ========================================================================
+
+    AchievementsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/UserAchievements'
+
+    UserAchievements:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/AchievementCategory'
+        userSummary:
+          $ref: '#/components/schemas/AchievementSummary'
+
+    AchievementCategory:
+      type: object
+      properties:
+        category:
+          type: string
+          example: "Scoring"
+        achievements:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserAchievement'
+
+    UserAchievement:
+      type: object
+      properties:
+        achievementId:
+          type: string
+          example: "score-1000"
+        name:
+          type: string
+          example: "First Thousand"
+        description:
+          type: string
+          example: "Score 1,000 points in a single game"
+        points:
+          type: integer
+          example: 10
+        isSecret:
+          type: boolean
+          example: false
+        iconUrl:
+          type: string
+          example: "/images/achievements/first-thousand.png"
+        badgeColor:
+          type: string
+          example: "bronze"
+        userProgress:
+          $ref: '#/components/schemas/AchievementProgress'
+
+    AchievementProgress:
+      type: object
+      properties:
+        isCompleted:
+          type: boolean
+          example: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-08-10T14:30:00Z"
+        progress:
+          type: integer
+          example: 1000
+        progressPercentage:
+          type: number
+          format: float
+          example: 100.0
+
+    AchievementSummary:
+      type: object
+      properties:
+        totalAchievements:
+          type: integer
+          example: 45
+        completedAchievements:
+          type: integer
+          example: 12
+        totalPoints:
+          type: integer
+          example: 340
+        completionPercentage:
+          type: number
+          format: float
+          example: 26.7
+
+    AvailableAchievementsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            categories:
+              type: array
+              items:
+                $ref: '#/components/schemas/AvailableAchievementCategory'
+
+    AvailableAchievementCategory:
+      type: object
+      properties:
+        category:
+          type: string
+          example: "Scoring"
+        achievements:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailableAchievement'
+
+    AvailableAchievement:
+      type: object
+      properties:
+        achievementId:
+          type: string
+          example: "score-1000"
+        name:
+          type: string
+          example: "First Thousand"
+        description:
+          type: string
+          example: "Score 1,000 points in a single game"
+        points:
+          type: integer
+          example: 10
+        isSecret:
+          type: boolean
+          example: false
+        iconUrl:
+          type: string
+          example: "/images/achievements/first-thousand.png"
+        badgeColor:
+          type: string
+          example: "bronze"
+
+    # ========================================================================
+    # COMMON SCHEMAS
+    # ========================================================================
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-08-13T11:15:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-08-13T11:15:00Z"
+        traceId:
+          type: string
+          example: "trace-12345-abcde"
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+          example: "username"
+        code:
+          type: string
+          example: "DUPLICATE_USERNAME"
+        message:
+          type: string
+          example: "Username 'player123' is already taken"
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Game Management
+    description: Game session creation, state management, and persistence
+  - name: User Settings
+    description: User preferences and customization settings
+  - name: Statistics
+    description: User game statistics and performance metrics
+  - name: Leaderboards
+    description: Daily, weekly, and monthly leaderboard rankings
+  - name: Achievements
+    description: Achievement system and progress tracking
